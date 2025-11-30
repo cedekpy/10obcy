@@ -105,7 +105,7 @@
                     <p>Oczekiwanie na graczy...</p>
                 </div>
                 <div class="users-list" id="lobbyUsersList"></div>
-                <button class="btn btn-secondary" onclick="leaveLobby()">Opuszczę lobby</button>
+                <button class="btn btn-secondary" onclick="leaveLobby()">Opuszcz lobby</button>
             </div>
             
             <button class="btn btn-secondary" onclick="showScreen('screenWojewodztwo')">Powrót</button>
@@ -136,7 +136,7 @@
                 <input type="text" id="lobbyMessageInput" class="message-input" placeholder="Napisz wiadomość...">
                 <button id="sendLobbyBtn" class="btn">Wyślij</button>
             </div>
-            <button class="btn btn-danger" onclick="leaveLobby()">Opuszczę lobby</button>
+            <button class="btn btn-danger" onclick="leaveLobby()">Opuszcz lobby</button>
         </div>
     </div>
 
@@ -153,10 +153,11 @@
         };
 
         // Inicjalizacja Firebase
+        let db, auth;
         try {
             firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-            const auth = firebase.auth();
+            db = firebase.firestore();
+            auth = firebase.auth();
             console.log('🔥 Firebase zainicjalizowany!');
         } catch (error) {
             console.error('❌ Błąd Firebase:', error);
@@ -178,6 +179,7 @@
 
         // Init
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM załadowany');
             initWojewodztwa();
             initAuth();
             setupEvents();
@@ -189,7 +191,8 @@
                 const btn = document.createElement('button');
                 btn.className = 'wojewodztwo-btn';
                 btn.textContent = woj;
-                btn.onclick = () => {
+                btn.onclick = function() {
+                    console.log('Wybrano województwo:', woj);
                     document.querySelectorAll('.wojewodztwo-btn').forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
                     selectedWojewodztwo = woj;
@@ -200,6 +203,7 @@
         }
 
         function initAuth() {
+            console.log('Inicjalizacja auth...');
             auth.signInAnonymously()
                 .then(user => {
                     currentUser = user.user;
@@ -211,17 +215,23 @@
         }
 
         function setupEvents() {
+            console.log('Ustawianie eventów...');
+            
             // Główne wydarzenia
-            document.getElementById('startBtn').onclick = startSearching;
-            document.getElementById('cancelBtn').onclick = () => showScreen('screenWojewodztwo');
-            document.getElementById('sendBtn').onclick = sendMessage;
-            document.getElementById('nextBtn').onclick = nextConversation;
-            document.getElementById('endBtn').onclick = () => showScreen('screenWojewodztwo');
+            document.getElementById('startBtn').addEventListener('click', startSearching);
+            document.getElementById('cancelBtn').addEventListener('click', function() {
+                showScreen('screenWojewodztwo');
+            });
+            document.getElementById('sendBtn').addEventListener('click', sendMessage);
+            document.getElementById('nextBtn').addEventListener('click', nextConversation);
+            document.getElementById('endBtn').addEventListener('click', function() {
+                showScreen('screenWojewodztwo');
+            });
             
             // Lobby events
-            document.getElementById('createLobbyBtn').onclick = createLobby;
-            document.getElementById('joinLobbyBtn').onclick = joinLobby;
-            document.getElementById('sendLobbyBtn').onclick = sendLobbyMessage;
+            document.getElementById('createLobbyBtn').addEventListener('click', createLobby);
+            document.getElementById('joinLobbyBtn').addEventListener('click', joinLobby);
+            document.getElementById('sendLobbyBtn').addEventListener('click', sendLobbyMessage);
             
             // Enter key events
             document.getElementById('messageInput').addEventListener('keypress', function(e) {
@@ -233,9 +243,12 @@
             document.getElementById('lobbyCodeInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') joinLobby();
             });
+
+            console.log('Eventy ustawione!');
         }
 
         function showScreen(screenName) {
+            console.log('Przełączam na ekran:', screenName);
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
             });
@@ -244,7 +257,11 @@
 
         // Funkcje głównego czatu
         function startSearching() {
-            if (!selectedWojewodztwo) return;
+            console.log('Rozpoczynam szukanie...');
+            if (!selectedWojewodztwo) {
+                alert('Wybierz województwo!');
+                return;
+            }
             
             showScreen('screenSearching');
             console.log('Szukam w:', selectedWojewodztwo);
@@ -261,6 +278,7 @@
             const text = input.value.trim();
             if (!text) return;
             
+            console.log('Wysyłam wiadomość:', text);
             addMessage('own', text);
             input.value = '';
         }
@@ -288,6 +306,7 @@
         }
 
         async function createLobby() {
+            console.log('Tworzę lobby...');
             const nick = document.getElementById('nickInput').value.trim();
             if (!nick) {
                 alert('Podaj swój nick!');
@@ -298,6 +317,7 @@
             const lobbyCode = generateLobbyCode();
 
             try {
+                console.log('Tworzę lobby w Firestore...');
                 // Stwórz lobby w Firestore
                 await db.collection('lobbies').doc(lobbyCode).set({
                     code: lobbyCode,
@@ -319,6 +339,8 @@
                 document.getElementById('createLobbyBtn').style.display = 'none';
                 document.getElementById('nickInput').style.display = 'none';
                 
+                console.log('Lobby utworzone:', lobbyCode);
+                
                 // Nasłuchuj zmian w lobby
                 listenToLobby(lobbyCode);
                 
@@ -329,6 +351,7 @@
         }
 
         async function joinLobby() {
+            console.log('Dołączam do lobby...');
             const nick = document.getElementById('joinNickInput').value.trim();
             const code = document.getElementById('lobbyCodeInput').value.trim().toUpperCase();
 
@@ -354,6 +377,13 @@
 
                 const lobbyData = lobbyDoc.data();
                 
+                // Sprawdź czy użytkownik już jest w lobby
+                const userExists = lobbyData.users.some(user => user.uid === currentUser.uid);
+                if (userExists) {
+                    alert('Już jesteś w tym lobby!');
+                    return;
+                }
+                
                 // Dodaj użytkownika do lobby
                 await lobbyRef.update({
                     users: firebase.firestore.FieldValue.arrayUnion({
@@ -368,6 +398,8 @@
                 document.getElementById('lobbyName').textContent = code;
                 listenToLobby(code);
                 
+                console.log('Dołączono do lobby:', code);
+                
             } catch (error) {
                 console.error('Błąd dołączania do lobby:', error);
                 alert('Błąd dołączania: ' + error.message);
@@ -375,16 +407,20 @@
         }
 
         function listenToLobby(lobbyCode) {
+            console.log('Nasłuchuję lobby:', lobbyCode);
             lobbyListener = db.collection('lobbies').doc(lobbyCode)
                 .onSnapshot((doc) => {
                     if (doc.exists) {
                         const lobbyData = doc.data();
+                        console.log('Lobby update:', lobbyData);
                         updateLobbyUI(lobbyData);
                     } else {
                         // Lobby zostało usunięte
                         alert('Lobby zostało zamknięte!');
                         leaveLobby();
                     }
+                }, (error) => {
+                    console.error('Błąd nasłuchiwania lobby:', error);
                 });
         }
 
@@ -425,7 +461,12 @@
             const input = document.getElementById('lobbyMessageInput');
             const text = input.value.trim();
             
-            if (!text || !currentLobby) return;
+            if (!text || !currentLobby) {
+                console.log('Brak tekstu lub lobby');
+                return;
+            }
+
+            console.log('Wysyłam wiadomość do lobby:', text);
 
             try {
                 const lobbyRef = db.collection('lobbies').doc(currentLobby);
@@ -445,6 +486,7 @@
                     });
 
                     input.value = '';
+                    console.log('Wiadomość wysłana');
                 }
             } catch (error) {
                 console.error('Błąd wysyłania wiadomości:', error);
@@ -452,8 +494,11 @@
         }
 
         async function leaveLobby() {
+            console.log('Opuszczam lobby...');
+            
             if (lobbyListener) {
                 lobbyListener();
+                lobbyListener = null;
             }
 
             if (currentLobby && currentUser) {
@@ -468,11 +513,13 @@
                         if (updatedUsers.length === 0) {
                             // Usuń lobby jeśli nie ma już użytkowników
                             await lobbyRef.delete();
+                            console.log('Lobby usunięte (brak użytkowników)');
                         } else {
                             // Usuń tylko tego użytkownika
                             await lobbyRef.update({
                                 users: updatedUsers
                             });
+                            console.log('Użytkownik usunięty z lobby');
                         }
                     }
                 } catch (error) {
@@ -491,9 +538,11 @@
             document.getElementById('nickInput').value = '';
             document.getElementById('joinNickInput').value = '';
             document.getElementById('lobbyCodeInput').value = '';
+            
+            console.log('Lobby opuszczone');
         }
 
-        console.log('🚀 Aplikacja załadowana!');
+        console.log('🚀 Aplikacja załadowana! Wszystkie przyciski powinny działać!');
     </script>
 </body>
 </html>
