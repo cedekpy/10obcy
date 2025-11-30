@@ -8,255 +8,119 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            width: 90%;
-            max-width: 500px;
-            overflow: hidden;
-        }
-
-        .screen {
-            padding: 30px;
-            display: none;
-        }
-
-        .active {
-            display: block;
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 24px;
-        }
-
-        h2 {
-            text-align: center;
-            color: #666;
-            margin-bottom: 20px;
-            font-size: 18px;
-        }
-
-        .wojewodztwo-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .wojewodztwo-btn {
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            background: #f8f9fa;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-        }
-
-        .wojewodztwo-btn:hover {
-            border-color: #667eea;
-            background: #e9ecef;
-        }
-
-        .wojewodztwo-btn.selected {
-            border-color: #667eea;
-            background: #667eea;
-            color: white;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            background: #667eea;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .btn:hover {
-            background: #5a6fd8;
-        }
-
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .chat-container {
-            height: 400px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            overflow-y: auto;
-            background: #f8f9fa;
-        }
-
-        .message {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            max-width: 80%;
-        }
-
-        .message.own {
-            background: #667eea;
-            color: white;
-            margin-left: auto;
-            text-align: right;
-        }
-
-        .message.other {
-            background: white;
-            border: 1px solid #ddd;
-        }
-
-        .typing-indicator {
-            color: #666;
-            font-style: italic;
-            margin-bottom: 10px;
-            display: none;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .message-input {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .status {
-            text-align: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            background: #e9ecef;
-        }
-
-        .status.searching {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status.connected {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .user-count {
-            text-align: center;
-            color: #666;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; border-radius: 15px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .screen { display: none; }
+        .active { display: block; }
+        h1 { text-align: center; margin-bottom: 20px; color: #333; }
+        h2 { text-align: center; margin-bottom: 20px; color: #666; font-size: 18px; }
+        .wojewodztwo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .wojewodztwo-btn { padding: 12px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; cursor: pointer; transition: all 0.3s; }
+        .wojewodztwo-btn:hover { border-color: #667eea; }
+        .wojewodztwo-btn.selected { border-color: #667eea; background: #667eea; color: white; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; background: #667eea; color: white; margin: 10px 0; cursor: pointer; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-secondary { background: #6c757d; }
+        .btn-danger { background: #dc3545; }
+        .btn-ai { background: #28a745; }
+        .btn-ai:disabled { background: #ccc; }
+        .chat-container { height: 300px; border: 2px solid #ddd; border-radius: 8px; padding: 15px; margin: 15px 0; overflow-y: auto; background: #f8f9fa; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 8px; max-width: 80%; }
+        .message.own { background: #667eea; color: white; margin-left: auto; text-align: right; }
+        .message.other { background: white; border: 1px solid #ddd; }
+        .status { padding: 10px; border-radius: 8px; text-align: center; margin: 10px 0; }
+        .status.searching { background: #fff3cd; color: #856404; }
+        .status.connected { background: #d1ecf1; color: #0c5460; }
+        .status.ai { background: #d4edda; color: #155724; }
+        .input-group { display: flex; gap: 10px; margin: 15px 0; }
+        .message-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; }
+        .soon-badge { background: #ffc107; color: #856404; padding: 5px 10px; border-radius: 12px; font-size: 12px; margin-left: 10px; }
+        .mode-selector { display: flex; gap: 10px; margin: 20px 0; }
+        .mode-btn { flex: 1; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; cursor: pointer; text-align: center; }
+        .mode-btn.selected { border-color: #667eea; background: #667eea; color: white; }
+        .mode-btn.disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Ekran wyboru województwa -->
-        <div id="screenWojewodztwo" class="screen active">
+        <!-- Ekran wyboru trybu -->
+        <div id="screenMode" class="screen active">
             <h1>10obcy</h1>
-            <h2>Wybierz swoje województwo</h2>
-            <div class="wojewodztwo-grid" id="wojewodztwaGrid">
-                <!-- Województwa zostaną wstawione przez JavaScript -->
+            <h2>Wybierz tryb rozmowy</h2>
+            <div class="mode-selector">
+                <div class="mode-btn selected" onclick="selectMode('human')">
+                    👥 Z prawym człowiekiem
+                </div>
+                <div class="mode-btn disabled" onclick="selectMode('ai')">
+                    🤖 Z AI
+                    <span class="soon-badge">Wkrótce</span>
+                </div>
             </div>
-            <button id="startBtn" class="btn" disabled>Rozpocznij rozmowę</button>
+            <button class="btn" onclick="showScreen('screenWojewodztwo')">Dalej</button>
         </div>
 
-        <!-- Ekran szukania rozmówcy -->
+        <!-- Ekran wyboru województwa -->
+        <div id="screenWojewodztwo" class="screen">
+            <h1>10obcy</h1>
+            <h2>Wybierz swoje województwo</h2>
+            <div class="wojewodztwo-grid" id="wojewodztwaGrid"></div>
+            <button id="startBtn" class="btn" disabled>Rozpocznij rozmowę</button>
+            <button class="btn btn-secondary" onclick="showScreen('screenMode')">Powrót</button>
+        </div>
+
+        <!-- Ekran szukania -->
         <div id="screenSearching" class="screen">
             <h1>Szukanie rozmówcy...</h1>
-            <div class="status searching">
-                Szukam kogoś z twojego województwa...
-            </div>
-            <div class="user-count">
-                Osób online: <span id="onlineCount">0</span>
-            </div>
-            <button id="cancelSearchBtn" class="btn btn-secondary">Anuluj</button>
+            <div class="status searching">Szukam kogoś z twojego województwa...</div>
+            <button id="cancelBtn" class="btn btn-secondary">Anuluj</button>
         </div>
 
         <!-- Ekran czatu -->
         <div id="screenChat" class="screen">
             <h1>Rozmowa z nieznajomym</h1>
-            <div class="status connected" id="chatStatus">
-                Połączono z kimś z twojego województwa
-            </div>
-            <div class="chat-container" id="chatMessages">
-                <!-- Wiadomości będą dodawane dynamicznie -->
-            </div>
-            <div class="typing-indicator" id="typingIndicator">
-                Nieznajomy pisze...
-            </div>
+            <div class="status connected">Połączono! Możesz rozmawiać</div>
+            <div class="chat-container" id="chatMessages"></div>
             <div class="input-group">
-                <input type="text" id="messageInput" class="message-input" placeholder="Napisz wiadomość..." maxlength="500">
+                <input type="text" id="messageInput" class="message-input" placeholder="Napisz wiadomość...">
                 <button id="sendBtn" class="btn">Wyślij</button>
             </div>
-            <button id="nextBtn" class="btn btn-secondary" style="margin-top: 10px;">Następna rozmowa</button>
-            <button id="endBtn" class="btn btn-danger" style="margin-top: 5px;">Zakończ</button>
+            <button id="nextBtn" class="btn btn-secondary">Następna rozmowa</button>
+            <button id="endBtn" class="btn btn-danger">Zakończ</button>
+        </div>
+
+        <!-- Ekran AI (wkrótce) -->
+        <div id="screenAI" class="screen">
+            <h1>Rozmowa z AI</h1>
+            <div class="status ai">Tryb AI będzie dostępny wkrótce!</div>
+            <div class="chat-container" id="aiMessages">
+                <div class="message other">Przepraszam, tryb rozmów z AI jest w trakcie rozwoju. Sprawdź ponownie później!</div>
+            </div>
+            <button class="btn btn-secondary" onclick="showScreen('screenMode')">Powrót do wyboru trybu</button>
         </div>
     </div>
 
     <script>
-        // Konfiguracja Firebase - TWOJA KONFIGURACJA
+        // Konfiguracja Firebase
         const firebaseConfig = {
-  apiKey: "AIzaSyBMM3ohzmnyBmjvcFqIOaapHzu02GFm0Hw",
-  authDomain: "obcy-44426.firebaseapp.com",
-  projectId: "obcy-44426",
-  storageBucket: "obcy-44426.firebasestorage.app",
-  messagingSenderId: "270864436948",
-  appId: "1:270864436948:web:7771583aeb50dfb3c4f541",
-  measurementId: "G-0JEEMG64JN"
-};
+            apiKey: "AIzaSyBMM3ohzmnyBmjvcFqIOaapHzu02GFm0Hw",
+            authDomain: "obcy-44426.firebaseapp.com",
+            projectId: "obcy-44426",
+            storageBucket: "obcy-44426.firebasestorage.app",
+            messagingSenderId: "270864436948",
+            appId: "1:270864436948:web:7771583aeb50dfb3c4f541",
+            measurementId: "G-0JEEMG64JN"
+        };
+
         // Inicjalizacja Firebase
-        console.log('Inicjalizacja Firebase...');
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        console.log('Firebase zainicjalizowany!');
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const auth = firebase.auth();
+            console.log('🔥 Firebase zainicjalizowany!');
+        } catch (error) {
+            console.error('❌ Błąd Firebase:', error);
+        }
 
         // Lista województw
         const wojewodztwa = [
@@ -266,163 +130,67 @@
             "świętokrzyskie", "warmińsko-mazurskie", "wielkopolskie", "zachodniopomorskie"
         ];
 
-        // Zmienne globalne
         let currentUser = null;
         let selectedWojewodztwo = null;
-        let currentConversation = null;
-        let conversationListener = null;
+        let currentMode = 'human';
 
-        // Inicjalizacja
+        // Init
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM załadowany');
             initWojewodztwa();
             initAuth();
-            setupEventListeners();
+            setupEvents();
         });
 
         function initWojewodztwa() {
             const grid = document.getElementById('wojewodztwaGrid');
             wojewodztwa.forEach(woj => {
-                const button = document.createElement('button');
-                button.className = 'wojewodztwo-btn';
-                button.textContent = woj;
-                button.addEventListener('click', () => selectWojewodztwo(woj, button));
-                grid.appendChild(button);
+                const btn = document.createElement('button');
+                btn.className = 'wojewodztwo-btn';
+                btn.textContent = woj;
+                btn.onclick = () => {
+                    document.querySelectorAll('.wojewodztwo-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    selectedWojewodztwo = woj;
+                    document.getElementById('startBtn').disabled = false;
+                };
+                grid.appendChild(btn);
             });
-        }
-
-        function selectWojewodztwo(woj, button) {
-            // Usuń selekcję z wszystkich przycisków
-            document.querySelectorAll('.wojewodztwo-btn').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-            
-            // Zaznacz wybrane
-            button.classList.add('selected');
-            selectedWojewodztwo = woj;
-            document.getElementById('startBtn').disabled = false;
         }
 
         function initAuth() {
-            console.log('Logowanie anonimowe...');
             auth.signInAnonymously()
-                .then((userCredential) => {
-                    currentUser = userCredential.user;
-                    console.log('Zalogowano anonimowo:', currentUser.uid);
+                .then(user => {
+                    currentUser = user.user;
+                    console.log('✅ Zalogowano:', currentUser.uid);
                 })
-                .catch((error) => {
-                    console.error('Błąd logowania:', error);
-                    alert('Błąd połączenia: ' + error.message);
+                .catch(error => {
+                    console.error('❌ Błąd logowania:', error);
                 });
         }
 
-        function setupEventListeners() {
-            document.getElementById('startBtn').addEventListener('click', startSearching);
-            document.getElementById('cancelSearchBtn').addEventListener('click', cancelSearch);
-            document.getElementById('sendBtn').addEventListener('click', sendMessage);
-            document.getElementById('nextBtn').addEventListener('click', nextConversation);
-            document.getElementById('endBtn').addEventListener('click', endConversation);
+        function setupEvents() {
+            document.getElementById('startBtn').onclick = startSearching;
+            document.getElementById('cancelBtn').onclick = () => showScreen('screenWojewodztwo');
+            document.getElementById('sendBtn').onclick = sendMessage;
+            document.getElementById('nextBtn').onclick = nextConversation;
+            document.getElementById('endBtn').onclick = () => showScreen('screenWojewodztwo');
             
             document.getElementById('messageInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-
-            // Nasłuchiwanie pisania
-            document.getElementById('messageInput').addEventListener('input', function() {
-                if (currentConversation) {
-                    updateTypingStatus(true);
-                }
+                if (e.key === 'Enter') sendMessage();
             });
         }
 
-        function startSearching() {
-            if (!selectedWojewodztwo || !currentUser) {
-                alert('Wybierz województwo!');
+        function selectMode(mode) {
+            if (mode === 'ai') {
+                showScreen('screenAI');
                 return;
             }
-
-            showScreen('screenSearching');
-            console.log('Szukanie rozmówcy w:', selectedWojewodztwo);
             
-            // Symulacja szukania rozmówcy (na razie bez Firestore)
-            setTimeout(() => {
-                // Tymczasowo przejdź od razu do czatu
-                currentConversation = 'test-' + Date.now();
-                showScreen('screenChat');
-                addTestMessage('Znaleziono rozmówcę! Możesz zacząć pisać.');
-            }, 2000);
-        }
-
-        function addTestMessage(text) {
-            const container = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message other';
-            messageDiv.textContent = text;
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-
-            if (!text) return;
-
-            // Dodaj swoją wiadomość
-            const container = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message own';
-            messageDiv.textContent = text;
-            container.appendChild(messageDiv);
-
-            // Wyczyść input
-            input.value = '';
-
-            // Przewiń na dół
-            container.scrollTop = container.scrollHeight;
-
-            // Symulacja odpowiedzi (tymczasowo)
-            setTimeout(() => {
-                const responses = [
-                    "Cześć! Jak tam?",
-                    "Fajnie, że jesteś!",
-                    "Skąd jesteś?",
-                    "Co u Ciebie słychać?",
-                    "Lubisz takie anonimowe rozmowy?"
-                ];
-                const response = responses[Math.floor(Math.random() * responses.length)];
-                
-                const responseDiv = document.createElement('div');
-                responseDiv.className = 'message other';
-                responseDiv.textContent = response;
-                container.appendChild(responseDiv);
-                container.scrollTop = container.scrollHeight;
-            }, 1000);
-        }
-
-        function updateTypingStatus(isTyping) {
-            // Tymczasowo pomijamy
-        }
-
-        function nextConversation() {
-            if (confirm('Zakończyć obecną rozmowę i szukać nowej?')) {
-                endConversation();
-                startSearching();
-            }
-        }
-
-        function endConversation() {
-            currentConversation = null;
-            document.getElementById('chatMessages').innerHTML = '';
-            document.getElementById('messageInput').value = '';
-            showScreen('screenWojewodztwo');
-        }
-
-        function cancelSearch() {
-            currentConversation = null;
-            showScreen('screenWojewodztwo');
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
         }
 
         function showScreen(screenName) {
@@ -431,6 +199,60 @@
             });
             document.getElementById(screenName).classList.add('active');
         }
+
+        function startSearching() {
+            if (!selectedWojewodztwo) return;
+            
+            showScreen('screenSearching');
+            console.log('Szukam w:', selectedWojewodztwo);
+            
+            // Tymczasowo symulacja
+            setTimeout(() => {
+                showScreen('screenChat');
+                addMessage('other', 'Cześć! Miło Cię poznać! Jak się masz?');
+            }, 2000);
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            addMessage('own', text);
+            input.value = '';
+            
+            // Auto-odpowiedź
+            setTimeout(() => {
+                const responses = [
+                    'Fajnie! A co u Ciebie?',
+                    'Interesujące!',
+                    'Opowiedz mi więcej :)',
+                    'Rozumiem, kontynuuj...',
+                    'Ciekawe spostrzeżenie!'
+                ];
+                const response = responses[Math.floor(Math.random() * responses.length)];
+                addMessage('other', response);
+            }, 1000);
+        }
+
+        function addMessage(type, text) {
+            const container = document.getElementById('chatMessages');
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.textContent = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function nextConversation() {
+            if (confirm('Zakończyć tę rozmowę i szukać nowej?')) {
+                document.getElementById('chatMessages').innerHTML = '';
+                document.getElementById('messageInput').value = '';
+                startSearching();
+            }
+        }
+
+        console.log('🚀 Aplikacja załadowana!');
     </script>
 </body>
 </html>
