@@ -3,87 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10obcy - Lobby z czatem</title>
+    <title>LogoLobby - Czat z Grami</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: white; border-radius: 15px; padding: 30px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; border-radius: 20px; padding: 30px; width: 100%; max-width: 800px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
         .screen { display: none; }
         .active { display: block; }
-        h1 { text-align: center; margin-bottom: 20px; color: #333; }
-        h2 { text-align: center; margin-bottom: 20px; color: #666; font-size: 18px; }
+        h1 { text-align: center; margin-bottom: 20px; color: #333; font-size: 2.5em; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h2 { text-align: center; margin-bottom: 20px; color: #666; font-size: 1.2em; }
         
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; background: #667eea; color: white; margin: 10px 0; cursor: pointer; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-secondary { background: #6c757d; }
-        .btn-danger { background: #dc3545; }
-        .btn-success { background: #28a745; }
-        .btn-warning { background: #ffc107; color: #000; }
+        .btn { padding: 15px 25px; border: none; border-radius: 12px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; margin: 10px 0; cursor: pointer; font-size: 16px; transition: all 0.3s; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .btn-secondary { background: linear-gradient(45deg, #6c757d, #495057); }
+        .btn-success { background: linear-gradient(45deg, #28a745, #20c997); }
+        .btn-danger { background: linear-gradient(45deg, #dc3545, #e83e8c); }
+        .btn-warning { background: linear-gradient(45deg, #ffc107, #fd7e14); color: #000; }
         
-        .chat-container { height: 400px; border: 2px solid #ddd; border-radius: 8px; padding: 15px; margin: 15px 0; overflow-y: auto; background: #f8f9fa; }
-        .message { margin: 10px 0; padding: 10px; border-radius: 8px; max-width: 80%; word-wrap: break-word; }
-        .message.own { background: #667eea; color: white; margin-left: auto; text-align: right; }
-        .message.other { background: white; border: 1px solid #ddd; }
-        .message.system { background: #f8f9fa; color: #666; text-align: center; font-style: italic; margin: 5px auto; max-width: 100%; font-size: 12px; }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; }
+        .feature-card { background: #f8f9fa; padding: 25px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; }
+        .feature-card:hover { transform: translateY(-5px); border-color: #667eea; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .feature-icon { font-size: 3em; margin-bottom: 15px; }
         
-        .message-img { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 5px; }
+        .chat-container { height: 400px; border: 2px solid #e9ecef; border-radius: 15px; padding: 20px; margin: 20px 0; overflow-y: auto; background: #f8f9fa; }
+        .message { margin: 12px 0; padding: 12px; border-radius: 12px; max-width: 70%; word-wrap: break-word; position: relative; }
+        .message.own { background: linear-gradient(45deg, #667eea, #764ba2); color: white; margin-left: auto; text-align: right; }
+        .message.other { background: white; border: 2px solid #e9ecef; }
+        .message.system { background: #e9ecef; color: #6c757d; text-align: center; margin: 8px auto; max-width: 90%; font-size: 13px; }
         
-        .status { padding: 10px; border-radius: 8px; text-align: center; margin: 10px 0; }
-        .status.connected { background: #d1ecf1; color: #0c5460; }
+        .message-img { max-width: 250px; max-height: 250px; border-radius: 10px; margin-top: 8px; cursor: pointer; border: 2px solid #e9ecef; }
+        .message-reply { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #fff; }
         
-        .input-group { display: flex; gap: 10px; margin: 15px 0; }
-        .message-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; }
+        .reactions { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+        .reaction { background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 12px; font-size: 12px; cursor: pointer; }
+        
+        .status { padding: 15px; border-radius: 12px; text-align: center; margin: 15px 0; background: linear-gradient(45deg, #d1ecf1, #bee5eb); color: #0c5460; }
+        
+        .input-group { display: flex; gap: 12px; margin: 20px 0; }
+        .message-input { flex: 1; padding: 15px; border: 2px solid #e9ecef; border-radius: 12px; font-size: 16px; }
         
         /* Lobby styles */
         .lobby-section { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
-        .lobby-buttons { display: flex; gap: 10px; margin: 15px 0; }
-        .lobby-btn { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; cursor: pointer; text-align: center; }
-        .lobby-btn:hover { border-color: #28a745; }
-        .input-group-lobby { display: flex; gap: 10px; margin: 10px 0; }
-        .code-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; text-align: center; font-size: 18px; letter-spacing: 2px; }
-        .code-display { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; margin: 15px 0; font-size: 24px; letter-spacing: 3px; font-weight: bold; }
-        .lobby-info { background: #e9ecef; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; }
-        .users-list { margin: 10px 0; }
-        .user-item { padding: 8px; background: #f8f9fa; margin: 5px 0; border-radius: 5px; display: flex; align-items: center; gap: 10px; }
-        .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: #667eea; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .lobby-buttons { display: flex; gap: 15px; margin: 20px 0; }
+        .lobby-btn { flex: 1; padding: 20px; border: 2px solid #e9ecef; border-radius: 15px; background: #f8f9fa; cursor: pointer; text-align: center; transition: all 0.3s; }
+        .lobby-btn:hover { border-color: #28a745; transform: translateY(-2px); }
+        .input-group-lobby { display: flex; gap: 12px; margin: 15px 0; }
+        .code-input { flex: 1; padding: 15px; border: 2px solid #e9ecef; border-radius: 12px; text-align: center; font-size: 20px; letter-spacing: 3px; font-weight: bold; }
+        .code-display { background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 15px; text-align: center; margin: 20px 0; font-size: 28px; letter-spacing: 4px; font-weight: bold; }
+        .lobby-info { background: #e9ecef; padding: 15px; border-radius: 12px; margin: 15px 0; text-align: center; }
+        .users-list { margin: 15px 0; }
+        .user-item { padding: 12px; background: #f8f9fa; margin: 8px 0; border-radius: 10px; display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(45deg, #667eea, #764ba2); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; }
         
-        .upload-btn { background: #17a2b8; margin: 5px 0; }
+        .chat-actions { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .action-btn { padding: 10px 15px; border: 2px solid #e9ecef; border-radius: 8px; background: #f8f9fa; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .action-btn:hover { border-color: #667eea; background: #667eea; color: white; }
+        
+        .emoticon-panel { background: white; border: 2px solid #e9ecef; border-radius: 12px; padding: 15px; margin: 10px 0; display: none; position: absolute; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .emoticon-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 200px; overflow-y: auto; }
+        .emoticon { font-size: 24px; cursor: pointer; padding: 5px; text-align: center; border-radius: 5px; }
+        .emoticon:hover { background: #f8f9fa; }
+        
+        .games-panel { background: white; border: 2px solid #e9ecef; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .game-card { background: #f8f9fa; padding: 20px; border-radius: 12px; margin: 10px 0; cursor: pointer; border: 2px solid transparent; transition: all 0.3s; }
+        .game-card:hover { border-color: #667eea; transform: translateY(-2px); }
+        
+        .typing-indicator { color: #6c757d; font-style: italic; font-size: 13px; margin: 8px 0; display: none; }
+        
+        .reply-indicator { background: #e9ecef; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; display: none; }
+        .reply-close { float: right; cursor: pointer; font-weight: bold; }
+        
         .file-input { display: none; }
-        
-        .chat-actions { display: flex; gap: 5px; margin-bottom: 10px; }
-        .action-btn { padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; background: #f8f9fa; cursor: pointer; font-size: 12px; }
-        
-        .typing-indicator { color: #666; font-style: italic; font-size: 12px; margin: 5px 0; display: none; }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- Ekran główny -->
         <div id="screenMain" class="screen active">
-            <h1>10obcy - Lobby</h1>
-            <h2>Wybierz opcję</h2>
+            <h1>🎮 LogoLobby</h1>
+            <h2>Wybierz co chcesz robić</h2>
             
-            <div class="lobby-buttons">
-                <div class="lobby-btn" onclick="showScreen('screenCreateLobby')">
-                    🎮 Utwórz nowe lobby
+            <div class="main-grid">
+                <div class="feature-card" onclick="showScreen('screenCreateLobby')">
+                    <div class="feature-icon">🎪</div>
+                    <h3>Stwórz Lobby</h3>
+                    <p>Utwórz prywatny pokój czatu dla znajomych</p>
                 </div>
-                <div class="lobby-btn" onclick="showScreen('screenJoinLobby')">
-                    🔗 Dołącz do lobby
+                <div class="feature-card" onclick="showScreen('screenJoinLobby')">
+                    <div class="feature-icon">🔗</div>
+                    <h3>Dołącz do Lobby</h3>
+                    <p>Dołącz do istniejącego lobby z kodem</p>
+                </div>
+                <div class="feature-card" onclick="showGamesPanel()">
+                    <div class="feature-icon">🎲</div>
+                    <h3>Gry Multiplayer</h3>
+                    <p>Zagraj w gry z innymi użytkownikami</p>
+                </div>
+                <div class="feature-card" onclick="showEmoticonPanel()">
+                    <div class="feature-icon">😊</div>
+                    <h3>Emotikony</h3>
+                    <p>Duży wybór emotek i reakcji</p>
                 </div>
             </div>
         </div>
 
         <!-- Ekran tworzenia lobby -->
         <div id="screenCreateLobby" class="screen">
-            <h1>Utwórz lobby</h1>
+            <h1>🎪 Stwórz Lobby</h1>
             <div class="input-group">
                 <input type="text" id="nickInput" class="message-input" placeholder="Twój nick" maxlength="20">
             </div>
-            <button id="createLobbyBtn" class="btn btn-success">UTWORZ LOBBY</button>
+            <button id="createLobbyBtn" class="btn btn-success">🎮 UTWORZ LOBBY</button>
             
             <div id="lobbyCreated" style="display: none;">
                 <div class="code-display" id="lobbyCodeDisplay"></div>
@@ -92,7 +126,7 @@
                     <p>👥 Oczekiwanie na graczy...</p>
                 </div>
                 <div class="users-list" id="lobbyUsersList"></div>
-                <button class="btn btn-warning" onclick="startLobbyChat()">🏁 Rozpocznij czat</button>
+                <button class="btn btn-warning" onclick="startLobbyChat()">💬 Rozpocznij Czat</button>
                 <button class="btn btn-secondary" onclick="leaveLobby()">🚪 Opuść lobby</button>
             </div>
             
@@ -101,30 +135,58 @@
 
         <!-- Ekran dołączania do lobby -->
         <div id="screenJoinLobby" class="screen">
-            <h1>Dołącz do lobby</h1>
+            <h1>🔗 Dołącz do Lobby</h1>
             <div class="input-group">
                 <input type="text" id="joinNickInput" class="message-input" placeholder="Twój nick" maxlength="20">
             </div>
             <div class="input-group-lobby">
-                <input type="text" id="lobbyCodeInput" class="code-input" placeholder="Wprowadź kod lobby" maxlength="6">
+                <input type="text" id="lobbyCodeInput" class="code-input" placeholder="WPISZ KOD" maxlength="6">
             </div>
-            <button id="joinLobbyBtn" class="btn btn-success">🎯 Dołącz do lobby</button>
+            <button id="joinLobbyBtn" class="btn btn-success">🎯 DOŁĄCZ DO LOBBY</button>
             <button class="btn btn-secondary" onclick="showScreen('screenMain')">🔙 Powrót</button>
         </div>
 
         <!-- Ekran czatu w lobby -->
         <div id="screenLobbyChat" class="screen">
-            <h1>💬 Lobby: <span id="lobbyName"></span></h1>
-            <div class="status connected">
+            <h1>💬 LogoLobby: <span id="lobbyName"></span></h1>
+            <div class="status">
                 ✅ Połączono z lobby! 
                 <span id="onlinePlayers">1</span> graczy online
             </div>
             
             <div class="chat-actions">
-                <button class="action-btn" onclick="document.getElementById('fileInput').click()">📎 Zdjęcie</button>
-                <button class="action-btn" onclick="sendSystemMessage('👍')">👍</button>
-                <button class="action-btn" onclick="sendSystemMessage('❤️')">❤️</button>
-                <button class="action-btn" onclick="sendSystemMessage('😂')">😂</button>
+                <button class="action-btn" onclick="document.getElementById('fileInput').click()">📷 Zdjęcie</button>
+                <button class="action-btn" onclick="toggleEmoticonPanel()">😊 Emotki</button>
+                <button class="action-btn" onclick="toggleGamesPanel()">🎮 Gry</button>
+                <button class="action-btn" onclick="sendReaction('👍')">👍</button>
+                <button class="action-btn" onclick="sendReaction('❤️')">❤️</button>
+                <button class="action-btn" onclick="sendReaction('😂')">😂</button>
+                <button class="action-btn" onclick="sendReaction('🔥')">🔥</button>
+            </div>
+            
+            <div id="emoticonPanel" class="emoticon-panel">
+                <div class="emoticon-grid" id="emoticonGrid"></div>
+            </div>
+            
+            <div id="gamesPanel" class="games-panel" style="display: none;">
+                <h3>🎲 Wybierz grę</h3>
+                <div class="game-card" onclick="startGame('ticTacToe')">
+                    <h4>⭕ Kółko i Krzyżyk</h4>
+                    <p>Klasyczna gra dla 2 graczy</p>
+                </div>
+                <div class="game-card" onclick="startGame('quiz')">
+                    <h4>❓ Quiz</h4>
+                    <p>Konkurs wiedzy dla wszystkich</p>
+                </div>
+                <div class="game-card" onclick="startGame('wordGame')">
+                    <h4>🔤 Gra w Słowa</h4>
+                    <p>Twórz słowa na czas</p>
+                </div>
+            </div>
+            
+            <div class="reply-indicator" id="replyIndicator">
+                <span id="replyText"></span>
+                <span class="reply-close" onclick="cancelReply()">✕</span>
             </div>
             
             <div class="chat-container" id="lobbyChatMessages"></div>
@@ -140,7 +202,7 @@
             
             <input type="file" id="fileInput" class="file-input" accept="image/*">
             
-            <button class="btn btn-danger" onclick="leaveLobby()">🚪 Opuść czat</button>
+            <button class="btn btn-danger" onclick="leaveLobby()">🚪 Opuść Czat</button>
         </div>
     </div>
 
@@ -173,12 +235,44 @@
         let lobbyListener = null;
         let userNick = '';
         let typingTimer = null;
+        let replyingTo = null;
+        let currentGame = null;
+
+        // Bank emotikonek
+        const emoticons = [
+            '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚',
+            '😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣',
+            '😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗',
+            '🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐',
+            '🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾',
+            '🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🙈','🙉','🙊','💌','💘','💝','💖','💗','💓',
+            '💞','💕','💟','❣️','💔','❤️','🧡','💛','💚','💙','💜','🖤','💋','👋','🤚','🖐️','✋','🖖','👌','🤌',
+            '🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌',
+            '👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🦷','🦴','👀','👁️',
+            '👅','👄','💋','🎶','🎵','🔥','💯','🚀','⭐','🌟','🌀','🌈','🌊','✨','🎉','🎊','🎁','🎈','🎀','🏆',
+            '🥇','🥈','🥉','⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🪀','🏓','👻','🦄','🐶','🐱','🐭','🐹','🐰',
+            '🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🎮','👾','🕹️','🎲','♠️','♥️',
+            '♦️','♣️','🃏','🀄','🎴','🔇','🔈','🔉','🔊','📢','📣','📯','🔔','🎼','🎵','🎶','🏧','🚮','🚰','♿',
+            '🚹','🚺','🚻','🚼','🚾','🛂','🛃','🛄','🛅','⚠️','🚸','⛔','🚫','🚳','🚭','🚯','🚱','🚷','📵','🔞',
+            '☢️','☣️','⬆️','↗️','➡️','↘️','⬇️','↙️','⬅️','↖️','↕️','↔️','↩️','↪️','⤴️','⤵️','🔃','🔄','🔙','🔚',
+            '🔛','🔜','🔝','🛐','⚛️','🕉️','✡️','☸️','☯️','✝️','☦️','☪️','☮️','🕎','🔯','♈','♉','♊','♋','♌',
+            '♍','♎','♏','♐','♑','♒','♓','⛎','🔀','🔁','🔂','▶️','⏩','⏭️','⏯️','◀️','⏪','⏮️','🔼','⏫','🔽',
+            '⏬','⏸️','⏹️','⏺️','⏏️','🎦','🔅','🔆','📶','📳','📴','♀️','♂️','⚧️','✖️','➕','➖','➗','♾️','‼️',
+            '⁉️','❓','❔','❕','❗','〰️','💱','💲','⚕️','♻️','⚜️','🔱','📛','🔰','⭕','✅','☑️','✔️','❌','❎',
+            '➰','➿','〽️','✳️','✴️','❇️','©️','®️','™️','#️⃣','*️⃣','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣',
+            '9️⃣','🔟','🔠','🔡','🔢','🔣','🔤','🅰️','🆎','🅱️','🆑','🆒','🆓','ℹ️','🆔','Ⓜ️','🆕','🆖','🅾️',
+            '🆗','🅿️','🆘','🆙','🆚','🈁','🈂️','🈷️','🈶','🈯','🉐','🈹','🈚','🈲','🉑','🈸','🈴','🈳','㊗️',
+            '㊙️','🈺','🈵','▪️','▫️','◻️','◼️','◽','◾','⬛','⬜','🔶','🔷','🔸','🔹','🔺','🔻','💠','🔘',
+            '🔳','🔲','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛','🕜','🕝','🕞','🕟','🕠','🕡',
+            '🕢','🕣','🕤','🕥','🕦','🕧'
+        ];
 
         // Init
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM załadowany');
             initAuth();
             setupEvents();
+            initEmoticons();
         });
 
         function initAuth() {
@@ -194,8 +288,6 @@
         }
 
         function setupEvents() {
-            console.log('Ustawianie eventów...');
-            
             // Lobby events
             document.getElementById('createLobbyBtn').addEventListener('click', createLobby);
             document.getElementById('joinLobbyBtn').addEventListener('click', joinLobby);
@@ -219,12 +311,51 @@
             console.log('Eventy ustawione!');
         }
 
+        function initEmoticons() {
+            const grid = document.getElementById('emoticonGrid');
+            emoticons.forEach(emoji => {
+                const emojiEl = document.createElement('div');
+                emojiEl.className = 'emoticon';
+                emojiEl.textContent = emoji;
+                emojiEl.onclick = () => {
+                    document.getElementById('lobbyMessageInput').value += emoji;
+                    toggleEmoticonPanel();
+                };
+                grid.appendChild(emojiEl);
+            });
+        }
+
         function showScreen(screenName) {
-            console.log('Przełączam na ekran:', screenName);
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
             });
             document.getElementById(screenName).classList.add('active');
+        }
+
+        function showEmoticonPanel() {
+            showScreen('screenLobbyChat');
+            setTimeout(() => {
+                toggleEmoticonPanel();
+            }, 100);
+        }
+
+        function showGamesPanel() {
+            showScreen('screenLobbyChat');
+            setTimeout(() => {
+                toggleGamesPanel();
+            }, 100);
+        }
+
+        function toggleEmoticonPanel() {
+            const panel = document.getElementById('emoticonPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('gamesPanel').style.display = 'none';
+        }
+
+        function toggleGamesPanel() {
+            const panel = document.getElementById('gamesPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('emoticonPanel').style.display = 'none';
         }
 
         // LOBBY SYSTEM
@@ -259,6 +390,7 @@
                         isOnline: true
                     }],
                     messages: [],
+                    reactions: {},
                     settings: {
                         maxUsers: 10,
                         isActive: true
@@ -368,7 +500,7 @@
 
         function updateLobbyUI(lobbyData) {
             updateUsersList(lobbyData.users || []);
-            updateChatMessages(lobbyData.messages || []);
+            updateChatMessages(lobbyData.messages || [], lobbyData.reactions || {});
             
             const onlinePlayers = document.getElementById('onlinePlayers');
             if (onlinePlayers) {
@@ -416,11 +548,11 @@
             }
         }
 
-        function updateChatMessages(messages) {
+        function updateChatMessages(messages, reactions) {
             const chatContainer = document.getElementById('lobbyChatMessages');
             if (chatContainer) {
                 chatContainer.innerHTML = '';
-                messages.forEach(msg => {
+                messages.forEach((msg, index) => {
                     const messageDiv = document.createElement('div');
                     
                     if (msg.type === 'system') {
@@ -443,7 +575,47 @@
                         messageDiv.appendChild(img);
                     } else {
                         messageDiv.className = `message ${msg.userId === currentUser.uid ? 'own' : 'other'}`;
-                        messageDiv.innerHTML = `<strong>${msg.nick}:</strong> ${msg.text}`;
+                        
+                        let messageContent = `<strong>${msg.nick}:</strong> `;
+                        
+                        if (msg.replyTo) {
+                            const repliedMsg = messages.find(m => m.id === msg.replyTo);
+                            if (repliedMsg) {
+                                messageContent = `<div class="message-reply"><strong>${repliedMsg.nick}:</strong> ${repliedMsg.text}</div>` + messageContent + msg.text;
+                            }
+                        } else {
+                            messageContent += msg.text;
+                        }
+                        
+                        messageDiv.innerHTML = messageContent;
+                        
+                        // Dodaj możliwość odpowiedzi
+                        messageDiv.style.cursor = 'pointer';
+                        messageDiv.onclick = () => {
+                            if (msg.userId !== currentUser.uid) {
+                                setReplyTo(msg.id, msg.nick, msg.text);
+                            }
+                        };
+                    }
+                    
+                    // Dodaj reakcje
+                    const messageReactions = reactions[msg.id] || {};
+                    if (Object.keys(messageReactions).length > 0) {
+                        const reactionsDiv = document.createElement('div');
+                        reactionsDiv.className = 'reactions';
+                        
+                        Object.entries(messageReactions).forEach(([emoji, users]) => {
+                            const reactionDiv = document.createElement('div');
+                            reactionDiv.className = 'reaction';
+                            reactionDiv.textContent = `${emoji} ${users.length}`;
+                            reactionDiv.onclick = (e) => {
+                                e.stopPropagation();
+                                addReaction(msg.id, emoji);
+                            };
+                            reactionsDiv.appendChild(reactionDiv);
+                        });
+                        
+                        messageDiv.appendChild(reactionsDiv);
                     }
                     
                     chatContainer.appendChild(messageDiv);
@@ -464,13 +636,22 @@
                 
                 if (lobbyDoc.exists) {
                     const messages = lobbyDoc.data().messages || [];
-                    messages.push({
+                    const messageId = Date.now().toString();
+                    
+                    const newMessage = {
+                        id: messageId,
                         userId: currentUser.uid,
                         nick: userNick,
                         text: text,
                         timestamp: new Date(),
                         type: 'text'
-                    });
+                    };
+                    
+                    if (replyingTo) {
+                        newMessage.replyTo = replyingTo.id;
+                    }
+                    
+                    messages.push(newMessage);
 
                     await lobbyRef.update({
                         messages: messages
@@ -478,13 +659,41 @@
 
                     input.value = '';
                     updateTypingStatus(false);
+                    cancelReply();
                 }
             } catch (error) {
                 console.error('Błąd wysyłania wiadomości:', error);
             }
         }
 
-        async function sendSystemMessage(emoji) {
+        function setReplyTo(messageId, nick, text) {
+            replyingTo = { id: messageId, nick: nick, text: text };
+            document.getElementById('replyText').textContent = `Odpowiadasz na: ${nick}: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`;
+            document.getElementById('replyIndicator').style.display = 'block';
+        }
+
+        function cancelReply() {
+            replyingTo = null;
+            document.getElementById('replyIndicator').style.display = 'none';
+        }
+
+        async function sendReaction(emoji) {
+            if (!currentLobby) return;
+
+            try {
+                const input = document.getElementById('lobbyMessageInput');
+                if (input.value.trim() === '') {
+                    input.value = emoji;
+                    sendLobbyMessage();
+                } else {
+                    input.value += emoji;
+                }
+            } catch (error) {
+                console.error('Błąd wysyłania reakcji:', error);
+            }
+        }
+
+        async function addReaction(messageId, emoji) {
             if (!currentLobby) return;
 
             try {
@@ -492,21 +701,33 @@
                 const lobbyDoc = await lobbyRef.get();
                 
                 if (lobbyDoc.exists) {
-                    const messages = lobbyDoc.data().messages || [];
-                    messages.push({
-                        userId: currentUser.uid,
-                        nick: userNick,
-                        text: emoji,
-                        timestamp: new Date(),
-                        type: 'system'
-                    });
-
+                    const reactions = lobbyDoc.data().reactions || {};
+                    if (!reactions[messageId]) {
+                        reactions[messageId] = {};
+                    }
+                    if (!reactions[messageId][emoji]) {
+                        reactions[messageId][emoji] = [];
+                    }
+                    
+                    if (!reactions[messageId][emoji].includes(currentUser.uid)) {
+                        reactions[messageId][emoji].push(currentUser.uid);
+                    } else {
+                        // Usuń reakcję jeśli już istnieje
+                        reactions[messageId][emoji] = reactions[messageId][emoji].filter(uid => uid !== currentUser.uid);
+                        if (reactions[messageId][emoji].length === 0) {
+                            delete reactions[messageId][emoji];
+                        }
+                        if (Object.keys(reactions[messageId]).length === 0) {
+                            delete reactions[messageId];
+                        }
+                    }
+                    
                     await lobbyRef.update({
-                        messages: messages
+                        reactions: reactions
                     });
                 }
             } catch (error) {
-                console.error('Błąd wysyłania wiadomości:', error);
+                console.error('Błąd dodawania reakcji:', error);
             }
         }
 
@@ -559,6 +780,7 @@
                 if (lobbyDoc.exists) {
                     const messages = lobbyDoc.data().messages || [];
                     messages.push({
+                        id: Date.now().toString(),
                         userId: currentUser.uid,
                         nick: userNick,
                         imageUrl: downloadURL,
@@ -591,6 +813,12 @@
             }
         }
 
+        function startGame(gameType) {
+            addSystemMessage(`🎮 Rozpoczyna się gra: ${gameType}`);
+            // Tutaj można dodać logikę gier
+            alert(`Gra ${gameType} wkrótce będzie dostępna!`);
+        }
+
         async function leaveLobby() {
             if (lobbyListener) {
                 lobbyListener();
@@ -619,6 +847,7 @@
                             // Dodaj wiadomość o opuszczeniu
                             const messages = lobbyData.messages || [];
                             messages.push({
+                                id: Date.now().toString(),
                                 userId: 'system',
                                 nick: 'System',
                                 text: `🚪 ${userNick} opuścił czat`,
@@ -648,9 +877,10 @@
             document.getElementById('joinNickInput').value = '';
             document.getElementById('lobbyCodeInput').value = '';
             document.getElementById('lobbyMessageInput').value = '';
+            cancelReply();
         }
 
-        console.log('🚀 Aplikacja załadowana! Lobby z czatem gotowe!');
+        console.log('🚀 LogoLobby załadowany! Wszystko gotowe!');
     </script>
 </body>
 </html>
