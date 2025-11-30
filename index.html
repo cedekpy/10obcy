@@ -241,20 +241,23 @@
     </div>
 
     <script>
-        // Konfiguracja Firebase - zastąp tymi danymi ze swojego projektu
-const firebaseConfig = {
-  apiKey: "AIzaSyBibSdYvi2NPIh_Q_A8WEjuBk3ep5mkrb8",
-  authDomain: "obcy-e4a82.firebaseapp.com",
-  projectId: "obcy-e4a82",
-  storageBucket: "obcy-e4a82.firebasestorage.app",
-  messagingSenderId: "841978418766",
-  appId: "1:841978418766:web:f03897a0dd2bf028fb951f",
-  measurementId: "G-XPX7TBG50Q"
-};
+        // Konfiguracja Firebase - TWOJA KONFIGURACJA
+        const firebaseConfig = {
+            apiKey: "AIzaSyBibSdYvi2MPTh_Q_ABMEjuBk3epSmkrb8",
+            authDomain: "obcy-e4a82.firebaseapp.com",
+            projectId: "obcy-e4a82",
+            storageBucket: "obcy-e4a82.firebasestorage.app",
+            messagingSenderId: "841978418766",
+            appId: "1:841978418766:web:f83897a0dd2bf828fb951f",
+            measurementId: "G-XPX7IBGSQQ"
+        };
+
         // Inicjalizacja Firebase
+        console.log('Inicjalizacja Firebase...');
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
+        console.log('Firebase zainicjalizowany!');
 
         // Lista województw
         const wojewodztwa = [
@@ -272,6 +275,7 @@ const firebaseConfig = {
 
         // Inicjalizacja
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM załadowany');
             initWojewodztwa();
             initAuth();
             setupEventListeners();
@@ -301,6 +305,7 @@ const firebaseConfig = {
         }
 
         function initAuth() {
+            console.log('Logowanie anonimowe...');
             auth.signInAnonymously()
                 .then((userCredential) => {
                     currentUser = userCredential.user;
@@ -308,7 +313,7 @@ const firebaseConfig = {
                 })
                 .catch((error) => {
                     console.error('Błąd logowania:', error);
-                    alert('Błąd połączenia. Odśwież stronę.');
+                    alert('Błąd połączenia: ' + error.message);
                 });
         }
 
@@ -334,209 +339,90 @@ const firebaseConfig = {
         }
 
         function startSearching() {
-            if (!selectedWojewodztwo || !currentUser) return;
+            if (!selectedWojewodztwo || !currentUser) {
+                alert('Wybierz województwo!');
+                return;
+            }
 
             showScreen('screenSearching');
+            console.log('Szukanie rozmówcy w:', selectedWojewodztwo);
             
-            // Szukaj rozmówcy
-            findConversation(selectedWojewodztwo);
+            // Symulacja szukania rozmówcy (na razie bez Firestore)
+            setTimeout(() => {
+                // Tymczasowo przejdź od razu do czatu
+                currentConversation = 'test-' + Date.now();
+                showScreen('screenChat');
+                addTestMessage('Znaleziono rozmówcę! Możesz zacząć pisać.');
+            }, 2000);
         }
 
-        async function findConversation(wojewodztwo) {
-            const roomId = `wojewodztwo_${wojewodztwo}`;
-            
-            try {
-                // Dodaj użytkownika do pokoju
-                await db.collection('rooms').doc(roomId).collection('users').doc(currentUser.uid).set({
-                    userId: currentUser.uid,
-                    joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    isSearching: true
-                });
-
-                // Szukaj innych użytkowników
-                const usersSnapshot = await db.collection('rooms').doc(roomId).collection('users')
-                    .where('isSearching', '==', true)
-                    .where('userId', '!=', currentUser.uid)
-                    .limit(1)
-                    .get();
-
-                if (!usersSnapshot.empty) {
-                    // Znaleziono rozmówcę
-                    const otherUser = usersSnapshot.docs[0].data();
-                    await createConversation(currentUser.uid, otherUser.userId, wojewodztwo);
-                } else {
-                    // Czekaj na rozmówcę
-                    setupConversationListener(wojewodztwo);
-                }
-
-            } catch (error) {
-                console.error('Błąd szukania rozmowy:', error);
-            }
-        }
-
-        async function createConversation(user1Id, user2Id, wojewodztwo) {
-            const conversationRef = db.collection('conversations').doc();
-            
-            const conversationData = {
-                user1Id: user1Id,
-                user2Id: user2Id,
-                wojewodztwo: wojewodztwo,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                isActive: true,
-                messages: []
-            };
-
-            await conversationRef.set(conversationData);
-            
-            // Przypisz konwersację użytkownikom
-            await db.collection('users').doc(user1Id).set({
-                currentConversation: conversationRef.id,
-                wojewodztwo: wojewodztwo,
-                lastActive: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            await db.collection('users').doc(user2Id).set({
-                currentConversation: conversationRef.id,
-                wojewodztwo: wojewodztwo,
-                lastActive: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            currentConversation = conversationRef.id;
-            showScreen('screenChat');
-            listenToMessages();
-        }
-
-        function setupConversationListener(wojewodztwo) {
-            const userRef = db.collection('users').doc(currentUser.uid);
-            
-            conversationListener = userRef.onSnapshot((doc) => {
-                if (doc.exists) {
-                    const userData = doc.data();
-                    if (userData.currentConversation) {
-                        currentConversation = userData.currentConversation;
-                        showScreen('screenChat');
-                        listenToMessages();
-                    }
-                }
-            });
-        }
-
-        function listenToMessages() {
-            if (!currentConversation) return;
-
-            db.collection('conversations').doc(currentConversation)
-                .onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const conversation = doc.data();
-                        displayMessages(conversation.messages);
-                        
-                        // Sprawdzanie statusu pisania
-                        const isTyping = conversation.userTyping === getOtherUserId();
-                        document.getElementById('typingIndicator').style.display = isTyping ? 'block' : 'none';
-                    }
-                });
-        }
-
-        function displayMessages(messages) {
+        function addTestMessage(text) {
             const container = document.getElementById('chatMessages');
-            container.innerHTML = '';
-
-            messages.forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.userId === currentUser.uid ? 'own' : 'other'}`;
-                messageDiv.textContent = msg.text;
-                container.appendChild(messageDiv);
-            });
-
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message other';
+            messageDiv.textContent = text;
+            container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
         }
 
-        async function sendMessage() {
+        function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
 
-            if (!text || !currentConversation) return;
+            if (!text) return;
 
-            try {
-                const conversationRef = db.collection('conversations').doc(currentConversation);
-                const conversation = await conversationRef.get();
+            // Dodaj swoją wiadomość
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message own';
+            messageDiv.textContent = text;
+            container.appendChild(messageDiv);
+
+            // Wyczyść input
+            input.value = '';
+
+            // Przewiń na dół
+            container.scrollTop = container.scrollHeight;
+
+            // Symulacja odpowiedzi (tymczasowo)
+            setTimeout(() => {
+                const responses = [
+                    "Cześć! Jak tam?",
+                    "Fajnie, że jesteś!",
+                    "Skąd jesteś?",
+                    "Co u Ciebie słychać?",
+                    "Lubisz takie anonimowe rozmowy?"
+                ];
+                const response = responses[Math.floor(Math.random() * responses.length)];
                 
-                if (conversation.exists) {
-                    const messages = conversation.data().messages || [];
-                    messages.push({
-                        userId: currentUser.uid,
-                        text: text,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                const responseDiv = document.createElement('div');
+                responseDiv.className = 'message other';
+                responseDiv.textContent = response;
+                container.appendChild(responseDiv);
+                container.scrollTop = container.scrollHeight;
+            }, 1000);
+        }
 
-                    await conversationRef.update({
-                        messages: messages,
-                        userTyping: null
-                    });
+        function updateTypingStatus(isTyping) {
+            // Tymczasowo pomijamy
+        }
 
-                    input.value = '';
-                    updateTypingStatus(false);
-                }
-            } catch (error) {
-                console.error('Błąd wysyłania wiadomości:', error);
+        function nextConversation() {
+            if (confirm('Zakończyć obecną rozmowę i szukać nowej?')) {
+                endConversation();
+                startSearching();
             }
         }
 
-        async function updateTypingStatus(isTyping) {
-            if (!currentConversation) return;
-
-            try {
-                await db.collection('conversations').doc(currentConversation).update({
-                    userTyping: isTyping ? currentUser.uid : null
-                });
-            } catch (error) {
-                console.error('Błąd aktualizacji statusu pisania:', error);
-            }
-        }
-
-        function getOtherUserId() {
-            // W prawdziwej implementacji trzeba by pobrać z konwersacji
-            // Tutaj uproszczona wersja
-            return currentConversation ? 'other_user' : null;
-        }
-
-        async function nextConversation() {
-            await endConversation();
-            startSearching();
-        }
-
-        async function endConversation() {
-            if (conversationListener) {
-                conversationListener();
-            }
-
-            if (currentConversation) {
-                try {
-                    await db.collection('conversations').doc(currentConversation).update({
-                        isActive: false
-                    });
-                } catch (error) {
-                    console.error('Błąd kończenia konwersacji:', error);
-                }
-            }
-
-            // Wyczyść dane użytkownika
-            if (currentUser) {
-                try {
-                    await db.collection('users').doc(currentUser.uid).delete();
-                } catch (error) {
-                    console.error('Błąd czyszczenia danych:', error);
-                }
-            }
-
+        function endConversation() {
             currentConversation = null;
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('messageInput').value = '';
             showScreen('screenWojewodztwo');
         }
 
         function cancelSearch() {
-            if (conversationListener) {
-                conversationListener();
-            }
+            currentConversation = null;
             showScreen('screenWojewodztwo');
         }
 
@@ -545,12 +431,6 @@ const firebaseConfig = {
                 screen.classList.remove('active');
             });
             document.getElementById(screenName).classList.add('active');
-        }
-
-        // Aktualizacja licznika online
-        function updateOnlineCount() {
-            // Implementacja licznika osób online
-            // Możesz dodać licznik w Firestore
         }
     </script>
 </body>
