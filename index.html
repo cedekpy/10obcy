@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10obcy - Anonimowe rozmowy</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 500px;
+            overflow: hidden;
+        }
+
+        .screen {
+            padding: 30px;
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .wojewodztwo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .wojewodztwo-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .wojewodztwo-btn:hover {
+            border-color: #667eea;
+            background: #e9ecef;
+        }
+
+        .wojewodztwo-btn.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .chat-container {
+            height: 400px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .message.own {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.other {
+            background: white;
+            border: 1px solid #ddd;
+        }
+
+        .typing-indicator {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .status {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #e9ecef;
+        }
+
+        .status.searching {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.connected {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .user-count {
+            text-align: center;
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Ekran wyboru województwa -->
+        <div id="screenWojewodztwo" class="screen active">
+            <h1>10obcy</h1>
+            <h2>Wybierz swoje województwo</h2>
+            <div class="wojewodztwo-grid" id="wojewodztwaGrid">
+                <!-- Województwa zostaną wstawione przez JavaScript -->
+            </div>
+            <button id="startBtn" class="btn" disabled>Rozpocznij rozmowę</button>
+        </div>
+
+        <!-- Ekran szukania rozmówcy -->
+        <div id="screenSearching" class="screen">
+            <h1>Szukanie rozmówcy...</h1>
+            <div class="status searching">
+                Szukam kogoś z twojego województwa...
+            </div>
+            <div class="user-count">
+                Osób online: <span id="onlineCount">0</span>
+            </div>
+            <button id="cancelSearchBtn" class="btn btn-secondary">Anuluj</button>
+        </div>
+
+        <!-- Ekran czatu -->
+        <div id="screenChat" class="screen">
+            <h1>Rozmowa z nieznajomym</h1>
+            <div class="status connected" id="chatStatus">
+                Połączono z kimś z twojego województwa
+            </div>
+            <div class="chat-container" id="chatMessages">
+                <!-- Wiadomości będą dodawane dynamicznie -->
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                Nieznajomy pisze...
+            </div>
+            <div class="input-group">
+                <input type="text" id="messageInput" class="message-input" placeholder="Napisz wiadomość..." maxlength="500">
+                <button id="sendBtn" class="btn">Wyślij</button>
+            </div>
+            <button id="nextBtn" class="btn btn-secondary" style="margin-top: 10px;">Następna rozmowa</button>
+            <button id="endBtn" class="btn btn-danger" style="margin-top: 5px;">Zakończ</button>
+        </div>
+    </div>
+
+    <script>
+        // Konfiguracja Firebase - zastąp tymi danymi ze swojego projektu
+const firebaseConfig = {
+  apiKey: "AIzaSyBibSdYvi2NPIh_Q_A8WEjuBk3ep5mkrb8",
+  authDomain: "obcy-e4a82.firebaseapp.com",
+  projectId: "obcy-e4a82",
+  storageBucket: "obcy-e4a82.firebasestorage.app",
+  messagingSenderId: "841978418766",
+  appId: "1:841978418766:web:f03897a0dd2bf028fb951f",
+  measurementId: "G-XPX7TBG50Q"
+};
+        // Inicjalizacja Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Lista województw
+        const wojewodztwa = [
+            "dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie",
+            "łódzkie", "małopolskie", "mazowieckie", "opolskie", 
+            "podkarpackie", "podlaskie", "pomorskie", "śląskie",
+            "świętokrzyskie", "warmińsko-mazurskie", "wielkopolskie", "zachodniopomorskie"
+        ];
+
+        // Zmienne globalne
+        let currentUser = null;
+        let selectedWojewodztwo = null;
+        let currentConversation = null;
+        let conversationListener = null;
+
+        // Inicjalizacja
+        document.addEventListener('DOMContentLoaded', function() {
+            initWojewodztwa();
+            initAuth();
+            setupEventListeners();
+        });
+
+        function initWojewodztwa() {
+            const grid = document.getElementById('wojewodztwaGrid');
+            wojewodztwa.forEach(woj => {
+                const button = document.createElement('button');
+                button.className = 'wojewodztwo-btn';
+                button.textContent = woj;
+                button.addEventListener('click', () => selectWojewodztwo(woj, button));
+                grid.appendChild(button);
+            });
+        }
+
+        function selectWojewodztwo(woj, button) {
+            // Usuń selekcję z wszystkich przycisków
+            document.querySelectorAll('.wojewodztwo-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Zaznacz wybrane
+            button.classList.add('selected');
+            selectedWojewodztwo = woj;
+            document.getElementById('startBtn').disabled = false;
+        }
+
+        function initAuth() {
+            auth.signInAnonymously()
+                .then((userCredential) => {
+                    currentUser = userCredential.user;
+                    console.log('Zalogowano anonimowo:', currentUser.uid);
+                })
+                .catch((error) => {
+                    console.error('Błąd logowania:', error);
+                    alert('Błąd połączenia. Odśwież stronę.');
+                });
+        }
+
+        function setupEventListeners() {
+            document.getElementById('startBtn').addEventListener('click', startSearching);
+            document.getElementById('cancelSearchBtn').addEventListener('click', cancelSearch);
+            document.getElementById('sendBtn').addEventListener('click', sendMessage);
+            document.getElementById('nextBtn').addEventListener('click', nextConversation);
+            document.getElementById('endBtn').addEventListener('click', endConversation);
+            
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Nasłuchiwanie pisania
+            document.getElementById('messageInput').addEventListener('input', function() {
+                if (currentConversation) {
+                    updateTypingStatus(true);
+                }
+            });
+        }
+
+        function startSearching() {
+            if (!selectedWojewodztwo || !currentUser) return;
+
+            showScreen('screenSearching');
+            
+            // Szukaj rozmówcy
+            findConversation(selectedWojewodztwo);
+        }
+
+        async function findConversation(wojewodztwo) {
+            const roomId = `wojewodztwo_${wojewodztwo}`;
+            
+            try {
+                // Dodaj użytkownika do pokoju
+                await db.collection('rooms').doc(roomId).collection('users').doc(currentUser.uid).set({
+                    userId: currentUser.uid,
+                    joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    isSearching: true
+                });
+
+                // Szukaj innych użytkowników
+                const usersSnapshot = await db.collection('rooms').doc(roomId).collection('users')
+                    .where('isSearching', '==', true)
+                    .where('userId', '!=', currentUser.uid)
+                    .limit(1)
+                    .get();
+
+                if (!usersSnapshot.empty) {
+                    // Znaleziono rozmówcę
+                    const otherUser = usersSnapshot.docs[0].data();
+                    await createConversation(currentUser.uid, otherUser.userId, wojewodztwo);
+                } else {
+                    // Czekaj na rozmówcę
+                    setupConversationListener(wojewodztwo);
+                }
+
+            } catch (error) {
+                console.error('Błąd szukania rozmowy:', error);
+            }
+        }
+
+        async function createConversation(user1Id, user2Id, wojewodztwo) {
+            const conversationRef = db.collection('conversations').doc();
+            
+            const conversationData = {
+                user1Id: user1Id,
+                user2Id: user2Id,
+                wojewodztwo: wojewodztwo,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                isActive: true,
+                messages: []
+            };
+
+            await conversationRef.set(conversationData);
+            
+            // Przypisz konwersację użytkownikom
+            await db.collection('users').doc(user1Id).set({
+                currentConversation: conversationRef.id,
+                wojewodztwo: wojewodztwo,
+                lastActive: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            await db.collection('users').doc(user2Id).set({
+                currentConversation: conversationRef.id,
+                wojewodztwo: wojewodztwo,
+                lastActive: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            currentConversation = conversationRef.id;
+            showScreen('screenChat');
+            listenToMessages();
+        }
+
+        function setupConversationListener(wojewodztwo) {
+            const userRef = db.collection('users').doc(currentUser.uid);
+            
+            conversationListener = userRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    if (userData.currentConversation) {
+                        currentConversation = userData.currentConversation;
+                        showScreen('screenChat');
+                        listenToMessages();
+                    }
+                }
+            });
+        }
+
+        function listenToMessages() {
+            if (!currentConversation) return;
+
+            db.collection('conversations').doc(currentConversation)
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const conversation = doc.data();
+                        displayMessages(conversation.messages);
+                        
+                        // Sprawdzanie statusu pisania
+                        const isTyping = conversation.userTyping === getOtherUserId();
+                        document.getElementById('typingIndicator').style.display = isTyping ? 'block' : 'none';
+                    }
+                });
+        }
+
+        function displayMessages(messages) {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.userId === currentUser.uid ? 'own' : 'other'}`;
+                messageDiv.textContent = msg.text;
+                container.appendChild(messageDiv);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+
+            if (!text || !currentConversation) return;
+
+            try {
+                const conversationRef = db.collection('conversations').doc(currentConversation);
+                const conversation = await conversationRef.get();
+                
+                if (conversation.exists) {
+                    const messages = conversation.data().messages || [];
+                    messages.push({
+                        userId: currentUser.uid,
+                        text: text,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    await conversationRef.update({
+                        messages: messages,
+                        userTyping: null
+                    });
+
+                    input.value = '';
+                    updateTypingStatus(false);
+                }
+            } catch (error) {
+                console.error('Błąd wysyłania wiadomości:', error);
+            }
+        }
+
+        async function updateTypingStatus(isTyping) {
+            if (!currentConversation) return;
+
+            try {
+                await db.collection('conversations').doc(currentConversation).update({
+                    userTyping: isTyping ? currentUser.uid : null
+                });
+            } catch (error) {
+                console.error('Błąd aktualizacji statusu pisania:', error);
+            }
+        }
+
+        function getOtherUserId() {
+            // W prawdziwej implementacji trzeba by pobrać z konwersacji
+            // Tutaj uproszczona wersja
+            return currentConversation ? 'other_user' : null;
+        }
+
+        async function nextConversation() {
+            await endConversation();
+            startSearching();
+        }
+
+        async function endConversation() {
+            if (conversationListener) {
+                conversationListener();
+            }
+
+            if (currentConversation) {
+                try {
+                    await db.collection('conversations').doc(currentConversation).update({
+                        isActive: false
+                    });
+                } catch (error) {
+                    console.error('Błąd kończenia konwersacji:', error);
+                }
+            }
+
+            // Wyczyść dane użytkownika
+            if (currentUser) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).delete();
+                } catch (error) {
+                    console.error('Błąd czyszczenia danych:', error);
+                }
+            }
+
+            currentConversation = null;
+            showScreen('screenWojewodztwo');
+        }
+
+        function cancelSearch() {
+            if (conversationListener) {
+                conversationListener();
+            }
+            showScreen('screenWojewodztwo');
+        }
+
+        function showScreen(screenName) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenName).classList.add('active');
+        }
+
+        // Aktualizacja licznika online
+        function updateOnlineCount() {
+            // Implementacja licznika osób online
+            // Możesz dodać licznik w Firestore
+        }
+    </script>
+</body>
+</html>
