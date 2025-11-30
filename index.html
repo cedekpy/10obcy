@@ -23,8 +23,7 @@
         .btn:disabled { background: #ccc; cursor: not-allowed; }
         .btn-secondary { background: #6c757d; }
         .btn-danger { background: #dc3545; }
-        .btn-ai { background: #28a745; }
-        .btn-ai:disabled { background: #ccc; }
+        .btn-success { background: #28a745; }
         .chat-container { height: 300px; border: 2px solid #ddd; border-radius: 8px; padding: 15px; margin: 15px 0; overflow-y: auto; background: #f8f9fa; }
         .message { margin: 10px 0; padding: 10px; border-radius: 8px; max-width: 80%; }
         .message.own { background: #667eea; color: white; margin-left: auto; text-align: right; }
@@ -32,41 +31,43 @@
         .status { padding: 10px; border-radius: 8px; text-align: center; margin: 10px 0; }
         .status.searching { background: #fff3cd; color: #856404; }
         .status.connected { background: #d1ecf1; color: #0c5460; }
-        .status.ai { background: #d4edda; color: #155724; }
         .input-group { display: flex; gap: 10px; margin: 15px 0; }
         .message-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; }
-        .soon-badge { background: #ffc107; color: #856404; padding: 5px 10px; border-radius: 12px; font-size: 12px; margin-left: 10px; }
-        .mode-selector { display: flex; gap: 10px; margin: 20px 0; }
-        .mode-btn { flex: 1; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; cursor: pointer; text-align: center; }
-        .mode-btn.selected { border-color: #667eea; background: #667eea; color: white; }
-        .mode-btn.disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        /* Lobby styles */
+        .lobby-section { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
+        .lobby-buttons { display: flex; gap: 10px; margin: 15px 0; }
+        .lobby-btn { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; cursor: pointer; text-align: center; }
+        .lobby-btn:hover { border-color: #28a745; }
+        .input-group-lobby { display: flex; gap: 10px; margin: 10px 0; }
+        .code-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; text-align: center; font-size: 18px; letter-spacing: 2px; }
+        .code-display { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; margin: 15px 0; font-size: 24px; letter-spacing: 3px; font-weight: bold; }
+        .lobby-info { background: #e9ecef; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; }
+        .users-list { margin: 10px 0; }
+        .user-item { padding: 8px; background: #f8f9fa; margin: 5px 0; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Ekran wyboru trybu -->
-        <div id="screenMode" class="screen active">
-            <h1>10obcy</h1>
-            <h2>Wybierz tryb rozmowy</h2>
-            <div class="mode-selector">
-                <div class="mode-btn selected" onclick="selectMode('human')">
-                    👥 Z prawym człowiekiem
-                </div>
-                <div class="mode-btn disabled" onclick="selectMode('ai')">
-                    🤖 Z AI
-                    <span class="soon-badge">Wkrótce</span>
-                </div>
-            </div>
-            <button class="btn" onclick="showScreen('screenWojewodztwo')">Dalej</button>
-        </div>
-
         <!-- Ekran wyboru województwa -->
-        <div id="screenWojewodztwo" class="screen">
+        <div id="screenWojewodztwo" class="screen active">
             <h1>10obcy</h1>
             <h2>Wybierz swoje województwo</h2>
             <div class="wojewodztwo-grid" id="wojewodztwaGrid"></div>
             <button id="startBtn" class="btn" disabled>Rozpocznij rozmowę</button>
-            <button class="btn btn-secondary" onclick="showScreen('screenMode')">Powrót</button>
+            
+            <!-- Sekcja Lobby -->
+            <div class="lobby-section">
+                <h2>Lobby z kodem</h2>
+                <div class="lobby-buttons">
+                    <div class="lobby-btn" onclick="showScreen('screenCreateLobby')">
+                        🎮 Utwórz lobby
+                    </div>
+                    <div class="lobby-btn" onclick="showScreen('screenJoinLobby')">
+                        🔗 Dołącz do lobby
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Ekran szukania -->
@@ -89,14 +90,53 @@
             <button id="endBtn" class="btn btn-danger">Zakończ</button>
         </div>
 
-        <!-- Ekran AI (wkrótce) -->
-        <div id="screenAI" class="screen">
-            <h1>Rozmowa z AI</h1>
-            <div class="status ai">Tryb AI będzie dostępny wkrótce!</div>
-            <div class="chat-container" id="aiMessages">
-                <div class="message other">Przepraszam, tryb rozmów z AI jest w trakcie rozwoju. Sprawdź ponownie później!</div>
+        <!-- Ekran tworzenia lobby -->
+        <div id="screenCreateLobby" class="screen">
+            <h1>Utwórz lobby</h1>
+            <div class="input-group">
+                <input type="text" id="nickInput" class="message-input" placeholder="Twój nick" maxlength="20">
             </div>
-            <button class="btn btn-secondary" onclick="showScreen('screenMode')">Powrót do wyboru trybu</button>
+            <button id="createLobbyBtn" class="btn btn-success">UTWORZ</button>
+            
+            <div id="lobbyCreated" style="display: none;">
+                <div class="code-display" id="lobbyCodeDisplay"></div>
+                <div class="lobby-info">
+                    <p>Udostępnij ten kod znajomym!</p>
+                    <p>Oczekiwanie na graczy...</p>
+                </div>
+                <div class="users-list" id="lobbyUsersList"></div>
+                <button class="btn btn-secondary" onclick="leaveLobby()">Opuszczę lobby</button>
+            </div>
+            
+            <button class="btn btn-secondary" onclick="showScreen('screenWojewodztwo')">Powrót</button>
+        </div>
+
+        <!-- Ekran dołączania do lobby -->
+        <div id="screenJoinLobby" class="screen">
+            <h1>Dołącz do lobby</h1>
+            <div class="input-group">
+                <input type="text" id="joinNickInput" class="message-input" placeholder="Twój nick" maxlength="20">
+            </div>
+            <div class="input-group-lobby">
+                <input type="text" id="lobbyCodeInput" class="code-input" placeholder="Wprowadź kod" maxlength="6">
+            </div>
+            <button id="joinLobbyBtn" class="btn btn-success">Dołącz do lobby</button>
+            <button class="btn btn-secondary" onclick="showScreen('screenWojewodztwo')">Powrót</button>
+        </div>
+
+        <!-- Ekran czatu w lobby -->
+        <div id="screenLobbyChat" class="screen">
+            <h1>Lobby: <span id="lobbyName"></span></h1>
+            <div class="status connected">Połączono z lobby!</div>
+            <div class="lobby-info">
+                Gracze online: <span id="onlinePlayers">1</span>
+            </div>
+            <div class="chat-container" id="lobbyChatMessages"></div>
+            <div class="input-group">
+                <input type="text" id="lobbyMessageInput" class="message-input" placeholder="Napisz wiadomość...">
+                <button id="sendLobbyBtn" class="btn">Wyślij</button>
+            </div>
+            <button class="btn btn-danger" onclick="leaveLobby()">Opuszczę lobby</button>
         </div>
     </div>
 
@@ -132,7 +172,9 @@
 
         let currentUser = null;
         let selectedWojewodztwo = null;
-        let currentMode = 'human';
+        let currentLobby = null;
+        let lobbyListener = null;
+        let userNick = '';
 
         // Init
         document.addEventListener('DOMContentLoaded', function() {
@@ -169,28 +211,28 @@
         }
 
         function setupEvents() {
+            // Główne wydarzenia
             document.getElementById('startBtn').onclick = startSearching;
             document.getElementById('cancelBtn').onclick = () => showScreen('screenWojewodztwo');
             document.getElementById('sendBtn').onclick = sendMessage;
             document.getElementById('nextBtn').onclick = nextConversation;
             document.getElementById('endBtn').onclick = () => showScreen('screenWojewodztwo');
             
+            // Lobby events
+            document.getElementById('createLobbyBtn').onclick = createLobby;
+            document.getElementById('joinLobbyBtn').onclick = joinLobby;
+            document.getElementById('sendLobbyBtn').onclick = sendLobbyMessage;
+            
+            // Enter key events
             document.getElementById('messageInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') sendMessage();
             });
-        }
-
-        function selectMode(mode) {
-            if (mode === 'ai') {
-                showScreen('screenAI');
-                return;
-            }
-            
-            currentMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.classList.remove('selected');
+            document.getElementById('lobbyMessageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') sendLobbyMessage();
             });
-            event.target.classList.add('selected');
+            document.getElementById('lobbyCodeInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') joinLobby();
+            });
         }
 
         function showScreen(screenName) {
@@ -200,6 +242,7 @@
             document.getElementById(screenName).classList.add('active');
         }
 
+        // Funkcje głównego czatu
         function startSearching() {
             if (!selectedWojewodztwo) return;
             
@@ -220,19 +263,6 @@
             
             addMessage('own', text);
             input.value = '';
-            
-            // Auto-odpowiedź
-            setTimeout(() => {
-                const responses = [
-                    'Fajnie! A co u Ciebie?',
-                    'Interesujące!',
-                    'Opowiedz mi więcej :)',
-                    'Rozumiem, kontynuuj...',
-                    'Ciekawe spostrzeżenie!'
-                ];
-                const response = responses[Math.floor(Math.random() * responses.length)];
-                addMessage('other', response);
-            }, 1000);
         }
 
         function addMessage(type, text) {
@@ -250,6 +280,217 @@
                 document.getElementById('messageInput').value = '';
                 startSearching();
             }
+        }
+
+        // Funkcje Lobby
+        function generateLobbyCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        async function createLobby() {
+            const nick = document.getElementById('nickInput').value.trim();
+            if (!nick) {
+                alert('Podaj swój nick!');
+                return;
+            }
+
+            userNick = nick;
+            const lobbyCode = generateLobbyCode();
+
+            try {
+                // Stwórz lobby w Firestore
+                await db.collection('lobbies').doc(lobbyCode).set({
+                    code: lobbyCode,
+                    createdBy: currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    users: [{
+                        uid: currentUser.uid,
+                        nick: nick,
+                        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }],
+                    messages: []
+                });
+
+                currentLobby = lobbyCode;
+                
+                // Pokaż kod lobby
+                document.getElementById('lobbyCodeDisplay').textContent = lobbyCode;
+                document.getElementById('lobbyCreated').style.display = 'block';
+                document.getElementById('createLobbyBtn').style.display = 'none';
+                document.getElementById('nickInput').style.display = 'none';
+                
+                // Nasłuchuj zmian w lobby
+                listenToLobby(lobbyCode);
+                
+            } catch (error) {
+                console.error('Błąd tworzenia lobby:', error);
+                alert('Błąd tworzenia lobby: ' + error.message);
+            }
+        }
+
+        async function joinLobby() {
+            const nick = document.getElementById('joinNickInput').value.trim();
+            const code = document.getElementById('lobbyCodeInput').value.trim().toUpperCase();
+
+            if (!nick) {
+                alert('Podaj swój nick!');
+                return;
+            }
+            if (!code) {
+                alert('Podaj kod lobby!');
+                return;
+            }
+
+            userNick = nick;
+
+            try {
+                const lobbyRef = db.collection('lobbies').doc(code);
+                const lobbyDoc = await lobbyRef.get();
+
+                if (!lobbyDoc.exists) {
+                    alert('Lobby o podanym kodzie nie istnieje!');
+                    return;
+                }
+
+                const lobbyData = lobbyDoc.data();
+                
+                // Dodaj użytkownika do lobby
+                await lobbyRef.update({
+                    users: firebase.firestore.FieldValue.arrayUnion({
+                        uid: currentUser.uid,
+                        nick: nick,
+                        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    })
+                });
+
+                currentLobby = code;
+                showScreen('screenLobbyChat');
+                document.getElementById('lobbyName').textContent = code;
+                listenToLobby(code);
+                
+            } catch (error) {
+                console.error('Błąd dołączania do lobby:', error);
+                alert('Błąd dołączania: ' + error.message);
+            }
+        }
+
+        function listenToLobby(lobbyCode) {
+            lobbyListener = db.collection('lobbies').doc(lobbyCode)
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const lobbyData = doc.data();
+                        updateLobbyUI(lobbyData);
+                    } else {
+                        // Lobby zostało usunięte
+                        alert('Lobby zostało zamknięte!');
+                        leaveLobby();
+                    }
+                });
+        }
+
+        function updateLobbyUI(lobbyData) {
+            // Aktualizuj listę użytkowników
+            const usersList = document.getElementById('lobbyUsersList');
+            if (usersList) {
+                usersList.innerHTML = '';
+                lobbyData.users.forEach(user => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.textContent = user.nick;
+                    usersList.appendChild(userItem);
+                });
+            }
+
+            // Aktualizuj liczbę graczy
+            const onlinePlayers = document.getElementById('onlinePlayers');
+            if (onlinePlayers) {
+                onlinePlayers.textContent = lobbyData.users.length;
+            }
+
+            // Aktualizuj czat lobby
+            const chatContainer = document.getElementById('lobbyChatMessages');
+            if (chatContainer && lobbyData.messages) {
+                chatContainer.innerHTML = '';
+                lobbyData.messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${msg.userId === currentUser.uid ? 'own' : 'other'}`;
+                    messageDiv.textContent = `${msg.nick}: ${msg.text}`;
+                    chatContainer.appendChild(messageDiv);
+                });
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+
+        async function sendLobbyMessage() {
+            const input = document.getElementById('lobbyMessageInput');
+            const text = input.value.trim();
+            
+            if (!text || !currentLobby) return;
+
+            try {
+                const lobbyRef = db.collection('lobbies').doc(currentLobby);
+                const lobbyDoc = await lobbyRef.get();
+                
+                if (lobbyDoc.exists) {
+                    const messages = lobbyDoc.data().messages || [];
+                    messages.push({
+                        userId: currentUser.uid,
+                        nick: userNick,
+                        text: text,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    await lobbyRef.update({
+                        messages: messages
+                    });
+
+                    input.value = '';
+                }
+            } catch (error) {
+                console.error('Błąd wysyłania wiadomości:', error);
+            }
+        }
+
+        async function leaveLobby() {
+            if (lobbyListener) {
+                lobbyListener();
+            }
+
+            if (currentLobby && currentUser) {
+                try {
+                    const lobbyRef = db.collection('lobbies').doc(currentLobby);
+                    const lobbyDoc = await lobbyRef.get();
+                    
+                    if (lobbyDoc.exists) {
+                        const lobbyData = lobbyDoc.data();
+                        const updatedUsers = lobbyData.users.filter(user => user.uid !== currentUser.uid);
+                        
+                        if (updatedUsers.length === 0) {
+                            // Usuń lobby jeśli nie ma już użytkowników
+                            await lobbyRef.delete();
+                        } else {
+                            // Usuń tylko tego użytkownika
+                            await lobbyRef.update({
+                                users: updatedUsers
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Błąd opuszczania lobby:', error);
+                }
+            }
+
+            currentLobby = null;
+            userNick = '';
+            showScreen('screenWojewodztwo');
+            
+            // Reset UI
+            document.getElementById('lobbyCreated').style.display = 'none';
+            document.getElementById('createLobbyBtn').style.display = 'block';
+            document.getElementById('nickInput').style.display = 'block';
+            document.getElementById('nickInput').value = '';
+            document.getElementById('joinNickInput').value = '';
+            document.getElementById('lobbyCodeInput').value = '';
         }
 
         console.log('🚀 Aplikacja załadowana!');
