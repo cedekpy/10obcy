@@ -3,34 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10obcy - Anonimowe rozmowy</title>
+    <title>10obcy - Lobby z czatem</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: white; border-radius: 15px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .container { background: white; border-radius: 15px; padding: 30px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .screen { display: none; }
         .active { display: block; }
         h1 { text-align: center; margin-bottom: 20px; color: #333; }
         h2 { text-align: center; margin-bottom: 20px; color: #666; font-size: 18px; }
-        .wojewodztwo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .wojewodztwo-btn { padding: 12px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; cursor: pointer; transition: all 0.3s; }
-        .wojewodztwo-btn:hover { border-color: #667eea; }
-        .wojewodztwo-btn.selected { border-color: #667eea; background: #667eea; color: white; }
+        
         .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; background: #667eea; color: white; margin: 10px 0; cursor: pointer; }
         .btn:disabled { background: #ccc; cursor: not-allowed; }
         .btn-secondary { background: #6c757d; }
         .btn-danger { background: #dc3545; }
         .btn-success { background: #28a745; }
-        .chat-container { height: 300px; border: 2px solid #ddd; border-radius: 8px; padding: 15px; margin: 15px 0; overflow-y: auto; background: #f8f9fa; }
-        .message { margin: 10px 0; padding: 10px; border-radius: 8px; max-width: 80%; }
+        .btn-warning { background: #ffc107; color: #000; }
+        
+        .chat-container { height: 400px; border: 2px solid #ddd; border-radius: 8px; padding: 15px; margin: 15px 0; overflow-y: auto; background: #f8f9fa; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 8px; max-width: 80%; word-wrap: break-word; }
         .message.own { background: #667eea; color: white; margin-left: auto; text-align: right; }
         .message.other { background: white; border: 1px solid #ddd; }
+        .message.system { background: #f8f9fa; color: #666; text-align: center; font-style: italic; margin: 5px auto; max-width: 100%; font-size: 12px; }
+        
+        .message-img { max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 5px; }
+        
         .status { padding: 10px; border-radius: 8px; text-align: center; margin: 10px 0; }
-        .status.searching { background: #fff3cd; color: #856404; }
         .status.connected { background: #d1ecf1; color: #0c5460; }
+        
         .input-group { display: flex; gap: 10px; margin: 15px 0; }
         .message-input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; }
         
@@ -44,51 +48,33 @@
         .code-display { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; margin: 15px 0; font-size: 24px; letter-spacing: 3px; font-weight: bold; }
         .lobby-info { background: #e9ecef; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; }
         .users-list { margin: 10px 0; }
-        .user-item { padding: 8px; background: #f8f9fa; margin: 5px 0; border-radius: 5px; }
+        .user-item { padding: 8px; background: #f8f9fa; margin: 5px 0; border-radius: 5px; display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: #667eea; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        
+        .upload-btn { background: #17a2b8; margin: 5px 0; }
+        .file-input { display: none; }
+        
+        .chat-actions { display: flex; gap: 5px; margin-bottom: 10px; }
+        .action-btn { padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px; background: #f8f9fa; cursor: pointer; font-size: 12px; }
+        
+        .typing-indicator { color: #666; font-style: italic; font-size: 12px; margin: 5px 0; display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Ekran wyboru województwa -->
-        <div id="screenWojewodztwo" class="screen active">
-            <h1>10obcy</h1>
-            <h2>Wybierz swoje województwo</h2>
-            <div class="wojewodztwo-grid" id="wojewodztwaGrid"></div>
-            <button id="startBtn" class="btn" disabled>Rozpocznij rozmowę</button>
+        <!-- Ekran główny -->
+        <div id="screenMain" class="screen active">
+            <h1>10obcy - Lobby</h1>
+            <h2>Wybierz opcję</h2>
             
-            <!-- Sekcja Lobby -->
-            <div class="lobby-section">
-                <h2>Lobby z kodem</h2>
-                <div class="lobby-buttons">
-                    <div class="lobby-btn" onclick="showScreen('screenCreateLobby')">
-                        🎮 Utwórz lobby
-                    </div>
-                    <div class="lobby-btn" onclick="showScreen('screenJoinLobby')">
-                        🔗 Dołącz do lobby
-                    </div>
+            <div class="lobby-buttons">
+                <div class="lobby-btn" onclick="showScreen('screenCreateLobby')">
+                    🎮 Utwórz nowe lobby
+                </div>
+                <div class="lobby-btn" onclick="showScreen('screenJoinLobby')">
+                    🔗 Dołącz do lobby
                 </div>
             </div>
-        </div>
-
-        <!-- Ekran szukania -->
-        <div id="screenSearching" class="screen">
-            <h1>Szukanie rozmówcy...</h1>
-            <div class="status searching">Szukam kogoś z twojego województwa...</div>
-            <div id="searchStatus">Status: Oczekiwanie...</div>
-            <button id="cancelBtn" class="btn btn-secondary">Anuluj</button>
-        </div>
-
-        <!-- Ekran czatu -->
-        <div id="screenChat" class="screen">
-            <h1>Rozmowa z nieznajomym</h1>
-            <div class="status connected">Połączono! Możesz rozmawiać</div>
-            <div class="chat-container" id="chatMessages"></div>
-            <div class="input-group">
-                <input type="text" id="messageInput" class="message-input" placeholder="Napisz wiadomość...">
-                <button id="sendBtn" class="btn">Wyślij</button>
-            </div>
-            <button id="nextBtn" class="btn btn-secondary">Następna rozmowa</button>
-            <button id="endBtn" class="btn btn-danger">Zakończ</button>
         </div>
 
         <!-- Ekran tworzenia lobby -->
@@ -97,19 +83,20 @@
             <div class="input-group">
                 <input type="text" id="nickInput" class="message-input" placeholder="Twój nick" maxlength="20">
             </div>
-            <button id="createLobbyBtn" class="btn btn-success">UTWORZ</button>
+            <button id="createLobbyBtn" class="btn btn-success">UTWORZ LOBBY</button>
             
             <div id="lobbyCreated" style="display: none;">
                 <div class="code-display" id="lobbyCodeDisplay"></div>
                 <div class="lobby-info">
-                    <p>Udostępnij ten kod znajomym!</p>
-                    <p>Oczekiwanie na graczy...</p>
+                    <p>🎉 Lobby utworzone! Udostępnij ten kod znajomym!</p>
+                    <p>👥 Oczekiwanie na graczy...</p>
                 </div>
                 <div class="users-list" id="lobbyUsersList"></div>
-                <button class="btn btn-secondary" onclick="leaveLobby()">Opuszcz lobby</button>
+                <button class="btn btn-warning" onclick="startLobbyChat()">🏁 Rozpocznij czat</button>
+                <button class="btn btn-secondary" onclick="leaveLobby()">🚪 Opuść lobby</button>
             </div>
             
-            <button class="btn btn-secondary" onclick="showScreen('screenWojewodztwo')">Powrót</button>
+            <button class="btn btn-secondary" onclick="showScreen('screenMain')">🔙 Powrót</button>
         </div>
 
         <!-- Ekran dołączania do lobby -->
@@ -119,25 +106,41 @@
                 <input type="text" id="joinNickInput" class="message-input" placeholder="Twój nick" maxlength="20">
             </div>
             <div class="input-group-lobby">
-                <input type="text" id="lobbyCodeInput" class="code-input" placeholder="Wprowadź kod" maxlength="6">
+                <input type="text" id="lobbyCodeInput" class="code-input" placeholder="Wprowadź kod lobby" maxlength="6">
             </div>
-            <button id="joinLobbyBtn" class="btn btn-success">Dołącz do lobby</button>
-            <button class="btn btn-secondary" onclick="showScreen('screenWojewodztwo')">Powrót</button>
+            <button id="joinLobbyBtn" class="btn btn-success">🎯 Dołącz do lobby</button>
+            <button class="btn btn-secondary" onclick="showScreen('screenMain')">🔙 Powrót</button>
         </div>
 
         <!-- Ekran czatu w lobby -->
         <div id="screenLobbyChat" class="screen">
-            <h1>Lobby: <span id="lobbyName"></span></h1>
-            <div class="status connected">Połączono z lobby!</div>
-            <div class="lobby-info">
-                Gracze online: <span id="onlinePlayers">1</span>
+            <h1>💬 Lobby: <span id="lobbyName"></span></h1>
+            <div class="status connected">
+                ✅ Połączono z lobby! 
+                <span id="onlinePlayers">1</span> graczy online
             </div>
+            
+            <div class="chat-actions">
+                <button class="action-btn" onclick="document.getElementById('fileInput').click()">📎 Zdjęcie</button>
+                <button class="action-btn" onclick="sendSystemMessage('👍')">👍</button>
+                <button class="action-btn" onclick="sendSystemMessage('❤️')">❤️</button>
+                <button class="action-btn" onclick="sendSystemMessage('😂')">😂</button>
+            </div>
+            
             <div class="chat-container" id="lobbyChatMessages"></div>
-            <div class="input-group">
-                <input type="text" id="lobbyMessageInput" class="message-input" placeholder="Napisz wiadomość...">
-                <button id="sendLobbyBtn" class="btn">Wyślij</button>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <span id="typingUsers"></span> pisze...
             </div>
-            <button class="btn btn-danger" onclick="leaveLobby()">Opuszcz lobby</button>
+            
+            <div class="input-group">
+                <input type="text" id="lobbyMessageInput" class="message-input" placeholder="Napisz wiadomość..." maxlength="500">
+                <button id="sendLobbyBtn" class="btn">📤 Wyślij</button>
+            </div>
+            
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+            
+            <button class="btn btn-danger" onclick="leaveLobby()">🚪 Opuść czat</button>
         </div>
     </div>
 
@@ -154,57 +157,29 @@
         };
 
         // Inicjalizacja Firebase
-        let db, auth;
+        let db, auth, storage;
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             auth = firebase.auth();
+            storage = firebase.storage();
             console.log('🔥 Firebase zainicjalizowany!');
         } catch (error) {
             console.error('❌ Błąd Firebase:', error);
         }
 
-        // Lista województw
-        const wojewodztwa = [
-            "dolnośląskie", "kujawsko-pomorskie", "lubelskie", "lubuskie",
-            "łódzkie", "małopolskie", "mazowieckie", "opolskie", 
-            "podkarpackie", "podlaskie", "pomorskie", "śląskie",
-            "świętokrzyskie", "warmińsko-mazurskie", "wielkopolskie", "zachodniopomorskie"
-        ];
-
         let currentUser = null;
-        let selectedWojewodztwo = null;
         let currentLobby = null;
         let lobbyListener = null;
         let userNick = '';
-        let currentConversation = null;
-        let conversationListener = null;
-        let searchListener = null;
+        let typingTimer = null;
 
         // Init
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM załadowany');
-            initWojewodztwa();
             initAuth();
             setupEvents();
         });
-
-        function initWojewodztwa() {
-            const grid = document.getElementById('wojewodztwaGrid');
-            wojewodztwa.forEach(woj => {
-                const btn = document.createElement('button');
-                btn.className = 'wojewodztwo-btn';
-                btn.textContent = woj;
-                btn.onclick = function() {
-                    console.log('Wybrano województwo:', woj);
-                    document.querySelectorAll('.wojewodztwo-btn').forEach(b => b.classList.remove('selected'));
-                    btn.classList.add('selected');
-                    selectedWojewodztwo = woj;
-                    document.getElementById('startBtn').disabled = false;
-                };
-                grid.appendChild(btn);
-            });
-        }
 
         function initAuth() {
             console.log('Inicjalizacja auth...');
@@ -221,28 +196,25 @@
         function setupEvents() {
             console.log('Ustawianie eventów...');
             
-            // Główne wydarzenia
-            document.getElementById('startBtn').addEventListener('click', startSearching);
-            document.getElementById('cancelBtn').addEventListener('click', cancelSearch);
-            document.getElementById('sendBtn').addEventListener('click', sendMessage);
-            document.getElementById('nextBtn').addEventListener('click', nextConversation);
-            document.getElementById('endBtn').addEventListener('click', endConversation);
-            
             // Lobby events
             document.getElementById('createLobbyBtn').addEventListener('click', createLobby);
             document.getElementById('joinLobbyBtn').addEventListener('click', joinLobby);
             document.getElementById('sendLobbyBtn').addEventListener('click', sendLobbyMessage);
             
             // Enter key events
-            document.getElementById('messageInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') sendMessage();
-            });
             document.getElementById('lobbyMessageInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') sendLobbyMessage();
+                if (e.key === 'Enter') {
+                    sendLobbyMessage();
+                }
             });
-            document.getElementById('lobbyCodeInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') joinLobby();
+            
+            // Typing indicator
+            document.getElementById('lobbyMessageInput').addEventListener('input', function() {
+                updateTypingStatus(true);
             });
+            
+            // File upload
+            document.getElementById('fileInput').addEventListener('change', handleImageUpload);
 
             console.log('Eventy ustawione!');
         }
@@ -255,166 +227,14 @@
             document.getElementById(screenName).classList.add('active');
         }
 
-        // PRAWDZIWE ŁĄCZENIE UŻYTKOWNIKÓW
-        async function startSearching() {
-            console.log('Rozpoczynam szukanie...');
-            if (!selectedWojewodztwo) {
-                alert('Wybierz województwo!');
-                return;
-            }
-            
-            showScreen('screenSearching');
-            
-            try {
-                // Dodaj się do kolejek szukających
-                const searchDoc = {
-                    userId: currentUser.uid,
-                    wojewodztwo: selectedWojewodztwo,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    isSearching: true
-                };
-                
-                await db.collection('searchQueue').doc(currentUser.uid).set(searchDoc);
-                
-                document.getElementById('searchStatus').textContent = 'Status: Szukam rozmówcy...';
-                
-                // Szukaj innych użytkowników
-                searchListener = db.collection('searchQueue')
-                    .where('wojewodztwo', '==', selectedWojewodztwo)
-                    .where('userId', '!=', currentUser.uid)
-                    .where('isSearching', '==', true)
-                    .onSnapshot(async (snapshot) => {
-                        if (!snapshot.empty) {
-                            // Znaleziono kogoś!
-                            const otherUser = snapshot.docs[0].data();
-                            await createConversation(currentUser.uid, otherUser.userId, selectedWojewodztwo);
-                        }
-                    });
-                    
-            } catch (error) {
-                console.error('Błąd szukania:', error);
-            }
-        }
-
-        async function createConversation(user1Id, user2Id, wojewodztwo) {
-            const conversationId = Date.now().toString();
-            
-            try {
-                // Stwórz konwersację
-                await db.collection('conversations').doc(conversationId).set({
-                    user1Id: user1Id,
-                    user2Id: user2Id,
-                    wojewodztwo: wojewodztwo,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    messages: []
-                });
-                
-                // Usuń obu użytkowników z kolejki
-                await db.collection('searchQueue').doc(user1Id).delete();
-                await db.collection('searchQueue').doc(user2Id).delete();
-                
-                if (searchListener) {
-                    searchListener();
-                }
-                
-                currentConversation = conversationId;
-                showScreen('screenChat');
-                listenToConversation();
-                
-            } catch (error) {
-                console.error('Błąd tworzenia konwersacji:', error);
-            }
-        }
-
-        function listenToConversation() {
-            conversationListener = db.collection('conversations').doc(currentConversation)
-                .onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const conversation = doc.data();
-                        displayMessages(conversation.messages || []);
-                    }
-                });
-        }
-
-        function displayMessages(messages) {
-            const container = document.getElementById('chatMessages');
-            container.innerHTML = '';
-            
-            messages.forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.userId === currentUser.uid ? 'own' : 'other'}`;
-                messageDiv.textContent = msg.text;
-                container.appendChild(messageDiv);
-            });
-            
-            container.scrollTop = container.scrollHeight;
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            if (!text || !currentConversation) return;
-            
-            try {
-                const conversationRef = db.collection('conversations').doc(currentConversation);
-                const conversationDoc = await conversationRef.get();
-                
-                if (conversationDoc.exists) {
-                    const messages = conversationDoc.data().messages || [];
-                    messages.push({
-                        userId: currentUser.uid,
-                        text: text,
-                        timestamp: new Date()
-                    });
-                    
-                    await conversationRef.update({
-                        messages: messages
-                    });
-                    
-                    input.value = '';
-                }
-            } catch (error) {
-                console.error('Błąd wysyłania wiadomości:', error);
-            }
-        }
-
-        function cancelSearch() {
-            if (searchListener) {
-                searchListener();
-            }
-            
-            // Usuń się z kolejki
-            if (currentUser) {
-                db.collection('searchQueue').doc(currentUser.uid).delete();
-            }
-            
-            showScreen('screenWojewodztwo');
-        }
-
-        function nextConversation() {
-            endConversation();
-            startSearching();
-        }
-
-        function endConversation() {
-            if (conversationListener) {
-                conversationListener();
-            }
-            
-            if (currentConversation) {
-                // Usuń konwersację
-                db.collection('conversations').doc(currentConversation).delete();
-            }
-            
-            currentConversation = null;
-            document.getElementById('chatMessages').innerHTML = '';
-            document.getElementById('messageInput').value = '';
-            showScreen('screenWojewodztwo');
-        }
-
-        // LOBBY - POPRAWIONE
+        // LOBBY SYSTEM
         function generateLobbyCode() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
         }
 
         async function createLobby() {
@@ -428,7 +248,6 @@
             const lobbyCode = generateLobbyCode();
 
             try {
-                // Użyj timestamp zamiast FieldValue.serverTimestamp() w tablicy
                 await db.collection('lobbies').doc(lobbyCode).set({
                     code: lobbyCode,
                     createdBy: currentUser.uid,
@@ -436,9 +255,14 @@
                     users: [{
                         uid: currentUser.uid,
                         nick: nick,
-                        joinedAt: new Date()
+                        joinedAt: new Date(),
+                        isOnline: true
                     }],
-                    messages: []
+                    messages: [],
+                    settings: {
+                        maxUsers: 10,
+                        isActive: true
+                    }
                 });
 
                 currentLobby = lobbyCode;
@@ -449,6 +273,7 @@
                 document.getElementById('nickInput').style.display = 'none';
                 
                 listenToLobby(lobbyCode);
+                updateUsersList([{uid: currentUser.uid, nick: nick}]);
                 
             } catch (error) {
                 console.error('Błąd tworzenia lobby:', error);
@@ -476,16 +301,27 @@
                 const lobbyDoc = await lobbyRef.get();
 
                 if (!lobbyDoc.exists) {
-                    alert('Lobby o podanym kodzie nie istnieje!');
+                    alert('❌ Lobby o podanym kodzie nie istnieje!');
                     return;
                 }
 
                 const lobbyData = lobbyDoc.data();
                 
+                if (!lobbyData.settings.isActive) {
+                    alert('❌ To lobby jest nieaktywne!');
+                    return;
+                }
+                
+                if (lobbyData.users.length >= lobbyData.settings.maxUsers) {
+                    alert('❌ Lobby jest pełne!');
+                    return;
+                }
+                
                 // Sprawdź czy użytkownik już jest w lobby
                 const userExists = lobbyData.users.some(user => user.uid === currentUser.uid);
                 if (userExists) {
-                    alert('Już jesteś w tym lobby!');
+                    alert('ℹ️ Już jesteś w tym lobby!');
+                    startLobbyChat();
                     return;
                 }
                 
@@ -494,19 +330,27 @@
                     users: firebase.firestore.FieldValue.arrayUnion({
                         uid: currentUser.uid,
                         nick: nick,
-                        joinedAt: new Date()
+                        joinedAt: new Date(),
+                        isOnline: true
                     })
                 });
 
                 currentLobby = code;
-                showScreen('screenLobbyChat');
-                document.getElementById('lobbyName').textContent = code;
-                listenToLobby(code);
+                startLobbyChat();
                 
             } catch (error) {
                 console.error('Błąd dołączania do lobby:', error);
-                alert('Błąd dołączania: ' + error.message);
+                alert('❌ Błąd dołączania: ' + error.message);
             }
+        }
+
+        function startLobbyChat() {
+            showScreen('screenLobbyChat');
+            document.getElementById('lobbyName').textContent = currentLobby;
+            listenToLobby(currentLobby);
+            
+            // Dodaj powitalną wiadomość
+            addSystemMessage(`👋 ${userNick} dołączył do czatu!`);
         }
 
         function listenToLobby(lobbyCode) {
@@ -516,36 +360,92 @@
                         const lobbyData = doc.data();
                         updateLobbyUI(lobbyData);
                     } else {
-                        alert('Lobby zostało zamknięte!');
+                        alert('❌ Lobby zostało zamknięte!');
                         leaveLobby();
                     }
                 });
         }
 
         function updateLobbyUI(lobbyData) {
+            updateUsersList(lobbyData.users || []);
+            updateChatMessages(lobbyData.messages || []);
+            
+            const onlinePlayers = document.getElementById('onlinePlayers');
+            if (onlinePlayers) {
+                const onlineUsers = lobbyData.users.filter(user => user.isOnline).length;
+                onlinePlayers.textContent = onlineUsers;
+            }
+            
+            // Typing indicator
+            const typingUsers = lobbyData.typingUsers || [];
+            const otherTypingUsers = typingUsers.filter(uid => uid !== currentUser.uid);
+            if (otherTypingUsers.length > 0) {
+                const userNicks = otherTypingUsers.map(uid => {
+                    const user = lobbyData.users.find(u => u.uid === uid);
+                    return user ? user.nick : 'Ktoś';
+                });
+                document.getElementById('typingUsers').textContent = userNicks.join(', ');
+                document.getElementById('typingIndicator').style.display = 'block';
+            } else {
+                document.getElementById('typingIndicator').style.display = 'none';
+            }
+        }
+
+        function updateUsersList(users) {
             const usersList = document.getElementById('lobbyUsersList');
             if (usersList) {
                 usersList.innerHTML = '';
-                lobbyData.users.forEach(user => {
+                users.forEach(user => {
                     const userItem = document.createElement('div');
                     userItem.className = 'user-item';
-                    userItem.textContent = user.nick;
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = 'user-avatar';
+                    avatar.textContent = user.nick.charAt(0).toUpperCase();
+                    
+                    const userInfo = document.createElement('div');
+                    userInfo.textContent = user.nick;
+                    if (user.uid === currentUser.uid) {
+                        userInfo.innerHTML += ' <strong>(Ty)</strong>';
+                    }
+                    
+                    userItem.appendChild(avatar);
+                    userItem.appendChild(userInfo);
                     usersList.appendChild(userItem);
                 });
             }
+        }
 
-            const onlinePlayers = document.getElementById('onlinePlayers');
-            if (onlinePlayers) {
-                onlinePlayers.textContent = lobbyData.users.length;
-            }
-
+        function updateChatMessages(messages) {
             const chatContainer = document.getElementById('lobbyChatMessages');
-            if (chatContainer && lobbyData.messages) {
+            if (chatContainer) {
                 chatContainer.innerHTML = '';
-                lobbyData.messages.forEach(msg => {
+                messages.forEach(msg => {
                     const messageDiv = document.createElement('div');
-                    messageDiv.className = `message ${msg.userId === currentUser.uid ? 'own' : 'other'}`;
-                    messageDiv.textContent = `${msg.nick}: ${msg.text}`;
+                    
+                    if (msg.type === 'system') {
+                        messageDiv.className = 'message system';
+                        messageDiv.textContent = msg.text;
+                    } else if (msg.type === 'image') {
+                        messageDiv.className = `message ${msg.userId === currentUser.uid ? 'own' : 'other'}`;
+                        
+                        const sender = document.createElement('div');
+                        sender.style.fontSize = '12px';
+                        sender.style.marginBottom = '5px';
+                        sender.textContent = msg.nick;
+                        
+                        const img = document.createElement('img');
+                        img.src = msg.imageUrl;
+                        img.className = 'message-img';
+                        img.onclick = () => window.open(msg.imageUrl, '_blank');
+                        
+                        messageDiv.appendChild(sender);
+                        messageDiv.appendChild(img);
+                    } else {
+                        messageDiv.className = `message ${msg.userId === currentUser.uid ? 'own' : 'other'}`;
+                        messageDiv.innerHTML = `<strong>${msg.nick}:</strong> ${msg.text}`;
+                    }
+                    
                     chatContainer.appendChild(messageDiv);
                 });
                 chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -568,7 +468,8 @@
                         userId: currentUser.uid,
                         nick: userNick,
                         text: text,
-                        timestamp: new Date()
+                        timestamp: new Date(),
+                        type: 'text'
                     });
 
                     await lobbyRef.update({
@@ -576,9 +477,117 @@
                     });
 
                     input.value = '';
+                    updateTypingStatus(false);
                 }
             } catch (error) {
                 console.error('Błąd wysyłania wiadomości:', error);
+            }
+        }
+
+        async function sendSystemMessage(emoji) {
+            if (!currentLobby) return;
+
+            try {
+                const lobbyRef = db.collection('lobbies').doc(currentLobby);
+                const lobbyDoc = await lobbyRef.get();
+                
+                if (lobbyDoc.exists) {
+                    const messages = lobbyDoc.data().messages || [];
+                    messages.push({
+                        userId: currentUser.uid,
+                        nick: userNick,
+                        text: emoji,
+                        timestamp: new Date(),
+                        type: 'system'
+                    });
+
+                    await lobbyRef.update({
+                        messages: messages
+                    });
+                }
+            } catch (error) {
+                console.error('Błąd wysyłania wiadomości:', error);
+            }
+        }
+
+        async function updateTypingStatus(isTyping) {
+            if (!currentLobby) return;
+
+            try {
+                const lobbyRef = db.collection('lobbies').doc(currentLobby);
+                
+                if (isTyping) {
+                    await lobbyRef.update({
+                        typingUsers: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+                    });
+                    
+                    clearTimeout(typingTimer);
+                    typingTimer = setTimeout(() => {
+                        updateTypingStatus(false);
+                    }, 3000);
+                } else {
+                    await lobbyRef.update({
+                        typingUsers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+                    });
+                }
+            } catch (error) {
+                console.error('Błąd aktualizacji pisania:', error);
+            }
+        }
+
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !currentLobby) return;
+
+            // Sprawdź rozmiar pliku (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('❌ Plik jest za duży! Maksymalny rozmiar to 5MB.');
+                return;
+            }
+
+            try {
+                // Upload do Firebase Storage
+                const storageRef = storage.ref();
+                const fileRef = storageRef.child(`lobbies/${currentLobby}/${Date.now()}_${file.name}`);
+                const snapshot = await fileRef.put(file);
+                const downloadURL = await snapshot.ref.getDownloadURL();
+
+                // Dodaj wiadomość z obrazkiem
+                const lobbyRef = db.collection('lobbies').doc(currentLobby);
+                const lobbyDoc = await lobbyRef.get();
+                
+                if (lobbyDoc.exists) {
+                    const messages = lobbyDoc.data().messages || [];
+                    messages.push({
+                        userId: currentUser.uid,
+                        nick: userNick,
+                        imageUrl: downloadURL,
+                        timestamp: new Date(),
+                        type: 'image'
+                    });
+
+                    await lobbyRef.update({
+                        messages: messages
+                    });
+                }
+
+                // Wyczyść input
+                event.target.value = '';
+                
+            } catch (error) {
+                console.error('Błąd uploadu zdjęcia:', error);
+                alert('❌ Błąd podczas wysyłania zdjęcia!');
+            }
+        }
+
+        function addSystemMessage(text) {
+            const chatContainer = document.getElementById('lobbyChatMessages');
+            if (chatContainer) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message system';
+                messageDiv.textContent = text;
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         }
 
@@ -598,10 +607,27 @@
                         const updatedUsers = lobbyData.users.filter(user => user.uid !== currentUser.uid);
                         
                         if (updatedUsers.length === 0) {
+                            // Usuń lobby jeśli nie ma już użytkowników
                             await lobbyRef.delete();
                         } else {
+                            // Usuń tylko tego użytkownika
                             await lobbyRef.update({
-                                users: updatedUsers
+                                users: updatedUsers,
+                                typingUsers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+                            });
+                            
+                            // Dodaj wiadomość o opuszczeniu
+                            const messages = lobbyData.messages || [];
+                            messages.push({
+                                userId: 'system',
+                                nick: 'System',
+                                text: `🚪 ${userNick} opuścił czat`,
+                                timestamp: new Date(),
+                                type: 'system'
+                            });
+                            
+                            await lobbyRef.update({
+                                messages: messages
                             });
                         }
                     }
@@ -612,17 +638,19 @@
 
             currentLobby = null;
             userNick = '';
-            showScreen('screenWojewodztwo');
+            showScreen('screenMain');
             
+            // Reset UI
             document.getElementById('lobbyCreated').style.display = 'none';
             document.getElementById('createLobbyBtn').style.display = 'block';
             document.getElementById('nickInput').style.display = 'block';
             document.getElementById('nickInput').value = '';
             document.getElementById('joinNickInput').value = '';
             document.getElementById('lobbyCodeInput').value = '';
+            document.getElementById('lobbyMessageInput').value = '';
         }
 
-        console.log('🚀 Aplikacja załadowana! Teraz powinno działać!');
+        console.log('🚀 Aplikacja załadowana! Lobby z czatem gotowe!');
     </script>
 </body>
 </html>
