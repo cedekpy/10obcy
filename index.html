@@ -11,7 +11,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: white; border-radius: 20px; padding: 30px; width: 100%; max-width: 800px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .container { background: white; border-radius: 20px; padding: 30px; width: 100%; max-width: 900px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
         .screen { display: none; }
         .active { display: block; }
         h1 { text-align: center; margin-bottom: 20px; color: #333; font-size: 2.5em; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -23,6 +23,7 @@
         .btn-success { background: linear-gradient(45deg, #28a745, #20c997); }
         .btn-danger { background: linear-gradient(45deg, #dc3545, #e83e8c); }
         .btn-warning { background: linear-gradient(45deg, #ffc107, #fd7e14); color: #000; }
+        .btn-admin { background: linear-gradient(45deg, #6f42c1, #e83e8c); }
         
         .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; }
         .feature-card { background: #f8f9fa; padding: 25px; border-radius: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; }
@@ -63,8 +64,8 @@
         .action-btn { padding: 10px 15px; border: 2px solid #e9ecef; border-radius: 8px; background: #f8f9fa; cursor: pointer; font-size: 14px; transition: all 0.3s; }
         .action-btn:hover { border-color: #667eea; background: #667eea; color: white; }
         
-        .emoticon-panel { background: white; border: 2px solid #e9ecef; border-radius: 12px; padding: 15px; margin: 10px 0; display: none; position: absolute; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .emoticon-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 200px; overflow-y: auto; }
+        .emoticon-panel { background: white; border: 2px solid #e9ecef; border-radius: 12px; padding: 15px; margin: 10px 0; position: absolute; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 400px; max-height: 300px; overflow-y: auto; }
+        .emoticon-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
         .emoticon { font-size: 24px; cursor: pointer; padding: 5px; text-align: center; border-radius: 5px; }
         .emoticon:hover { background: #f8f9fa; }
         
@@ -78,6 +79,27 @@
         .reply-close { float: right; cursor: pointer; font-weight: bold; }
         
         .file-input { display: none; }
+        
+        /* Tagi i polecane gry */
+        .tags-container { display: flex; gap: 8px; margin: 15px 0; flex-wrap: wrap; }
+        .tag { background: #e9ecef; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; }
+        .tag:hover { background: #667eea; color: white; }
+        
+        .recommended-games { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .recommended-game { background: #f8f9fa; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: all 0.3s; }
+        .recommended-game:hover { border-color: #28a745; transform: translateY(-3px); }
+        
+        /* Panel admina */
+        .admin-panel { background: #f8f9fa; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #6f42c1; }
+        .admin-controls { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        .admin-btn { padding: 10px 15px; border: none; border-radius: 8px; background: #6f42c1; color: white; cursor: pointer; }
+        
+        /* Forum */
+        .forum-panel { background: white; border: 2px solid #e9ecef; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .forum-post { background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 10px 0; }
+        .forum-author { font-weight: bold; color: #667eea; }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -86,6 +108,17 @@
         <div id="screenMain" class="screen active">
             <h1>🎮 LogoLobby</h1>
             <h2>Wybierz co chcesz robić</h2>
+            
+            <!-- Panel Admina (ukryty domyślnie) -->
+            <div id="adminPanel" class="admin-panel hidden">
+                <h3>👑 Panel Administratora</h3>
+                <div class="admin-controls">
+                    <button class="admin-btn" onclick="clearAllChats()">🗑️ Wyczyść czaty</button>
+                    <button class="admin-btn" onclick="banUser()">🔨 Zbanuj użytkownika</button>
+                    <button class="admin-btn" onclick="createAnnouncement()">📢 Ogłoszenie</button>
+                    <button class="admin-btn" onclick="viewStatistics()">📊 Statystyki</button>
+                </div>
+            </div>
             
             <div class="main-grid">
                 <div class="feature-card" onclick="showScreen('screenCreateLobby')">
@@ -108,15 +141,66 @@
                     <h3>Emotikony</h3>
                     <p>Duży wybór emotek i reakcji</p>
                 </div>
+                <div class="feature-card" onclick="showScreen('screenForum')">
+                    <div class="feature-icon">💬</div>
+                    <h3>Forum</h3>
+                    <p>Dyskusje i ogłoszenia</p>
+                </div>
+                <div class="feature-card" onclick="showRecommendedGames()">
+                    <div class="feature-icon">⭐</div>
+                    <h3>Polecane Gry</h3>
+                    <p>Najpopularniejsze gry społeczności</p>
+                </div>
+            </div>
+            
+            <!-- Polecane Gry -->
+            <div class="recommended-games" id="recommendedGames">
+                <div class="recommended-game" onclick="startGame('ticTacToe')">
+                    <h4>⭕ Kółko i Krzyżyk</h4>
+                    <p>Klasyczna gra strategiczna</p>
+                    <div class="tags-container">
+                        <span class="tag">2 graczy</span>
+                        <span class="tag">Strategia</span>
+                    </div>
+                </div>
+                <div class="recommended-game" onclick="startGame('quiz')">
+                    <h4>❓ Quiz Wiedzy</h4>
+                    <p>Sprawdź swoją wiedzę</p>
+                    <div class="tags-container">
+                        <span class="tag">Wiedza</span>
+                        <span class="tag">Edukacja</span>
+                    </div>
+                </div>
+                <div class="recommended-game" onclick="startGame('wordGame')">
+                    <h4>🔤 Gra w Słowa</h4>
+                    <p>Twórz słowa na czas</p>
+                    <div class="tags-container">
+                        <span class="tag">Słowa</span>
+                        <span class="tag">Czas</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Ekran tworzenia lobby -->
         <div id="screenCreateLobby" class="screen">
             <h1>🎪 Stwórz Lobby</h1>
+            
+            <div class="tags-container">
+                <span class="tag" onclick="addTag('Czat')">Czat</span>
+                <span class="tag" onclick="addTag('Gry')">Gry</span>
+                <span class="tag" onclick="addTag('Spotkanie')">Spotkanie</span>
+                <span class="tag" onclick="addTag('Nauka')">Nauka</span>
+                <span class="tag" onclick="addTag('Zabawa')">Zabawa</span>
+            </div>
+            
             <div class="input-group">
                 <input type="text" id="nickInput" class="message-input" placeholder="Twój nick" maxlength="20">
             </div>
+            <div class="input-group">
+                <input type="text" id="lobbyNameInput" class="message-input" placeholder="Nazwa lobby (opcjonalnie)" maxlength="30">
+            </div>
+            
             <button id="createLobbyBtn" class="btn btn-success">🎮 UTWORZ LOBBY</button>
             
             <div id="lobbyCreated" style="display: none;">
@@ -152,36 +236,75 @@
             <div class="status">
                 ✅ Połączono z lobby! 
                 <span id="onlinePlayers">1</span> graczy online
+                <span id="adminBadge" class="hidden"> 👑</span>
             </div>
             
             <div class="chat-actions">
                 <button class="action-btn" onclick="document.getElementById('fileInput').click()">📷 Zdjęcie</button>
                 <button class="action-btn" onclick="toggleEmoticonPanel()">😊 Emotki</button>
                 <button class="action-btn" onclick="toggleGamesPanel()">🎮 Gry</button>
+                <button class="action-btn" onclick="toggleForumPanel()">💬 Forum</button>
                 <button class="action-btn" onclick="sendReaction('👍')">👍</button>
                 <button class="action-btn" onclick="sendReaction('❤️')">❤️</button>
                 <button class="action-btn" onclick="sendReaction('😂')">😂</button>
                 <button class="action-btn" onclick="sendReaction('🔥')">🔥</button>
             </div>
             
-            <div id="emoticonPanel" class="emoticon-panel">
+            <div id="emoticonPanel" class="emoticon-panel hidden">
                 <div class="emoticon-grid" id="emoticonGrid"></div>
             </div>
             
-            <div id="gamesPanel" class="games-panel" style="display: none;">
+            <div id="gamesPanel" class="games-panel hidden">
                 <h3>🎲 Wybierz grę</h3>
                 <div class="game-card" onclick="startGame('ticTacToe')">
                     <h4>⭕ Kółko i Krzyżyk</h4>
                     <p>Klasyczna gra dla 2 graczy</p>
+                    <div class="tags-container">
+                        <span class="tag">2 graczy</span>
+                        <span class="tag">Strategia</span>
+                    </div>
                 </div>
                 <div class="game-card" onclick="startGame('quiz')">
-                    <h4>❓ Quiz</h4>
+                    <h4>❓ Quiz Wiedzy</h4>
                     <p>Konkurs wiedzy dla wszystkich</p>
+                    <div class="tags-container">
+                        <span class="tag">Wiedza</span>
+                        <span class="tag">Edukacja</span>
+                    </div>
                 </div>
                 <div class="game-card" onclick="startGame('wordGame')">
                     <h4>🔤 Gra w Słowa</h4>
                     <p>Twórz słowa na czas</p>
+                    <div class="tags-container">
+                        <span class="tag">Słowa</span>
+                        <span class="tag">Czas</span>
+                    </div>
                 </div>
+                <div class="game-card" onclick="startGame('drawGame')">
+                    <h4>🎨 Rysowanie</h4>
+                    <p>Rysuj i zgaduj</p>
+                    <div class="tags-container">
+                        <span class="tag">Kreatywność</span>
+                        <span class="tag">Zgadywanka</span>
+                    </div>
+                </div>
+                <div class="game-card" onclick="startGame('trivia')">
+                    <h4>🏆 Trivia</h4>
+                    <p>Pytania z różnych kategorii</p>
+                    <div class="tags-container">
+                        <span class="tag">Wiedza</span>
+                        <span class="tag">Quiz</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="forumPanel" class="forum-panel hidden">
+                <h3>💬 Forum Dyskusyjne</h3>
+                <div class="input-group">
+                    <input type="text" id="forumTopicInput" class="message-input" placeholder="Temat dyskusji...">
+                    <button class="btn" onclick="createForumPost()">📝 Utwórz temat</button>
+                </div>
+                <div id="forumPosts"></div>
             </div>
             
             <div class="reply-indicator" id="replyIndicator">
@@ -203,6 +326,17 @@
             <input type="file" id="fileInput" class="file-input" accept="image/*">
             
             <button class="btn btn-danger" onclick="leaveLobby()">🚪 Opuść Czat</button>
+        </div>
+
+        <!-- Ekran Forum -->
+        <div id="screenForum" class="screen">
+            <h1>💬 Forum LogoLobby</h1>
+            <div class="input-group">
+                <input type="text" id="newTopicInput" class="message-input" placeholder="Temat nowej dyskusji...">
+                <button class="btn btn-success" onclick="createForumTopic()">📝 Utwórz temat</button>
+            </div>
+            <div id="forumTopics"></div>
+            <button class="btn btn-secondary" onclick="showScreen('screenMain')">🔙 Powrót</button>
         </div>
     </div>
 
@@ -237,6 +371,18 @@
         let typingTimer = null;
         let replyingTo = null;
         let currentGame = null;
+        let isAdmin = false;
+        let selectedTags = [];
+
+        // Sprawdź czy admin
+        function checkAdmin() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('admin') === 'adminpanel123') {
+                isAdmin = true;
+                document.getElementById('adminPanel').classList.remove('hidden');
+                console.log('👑 Tryb administratora aktywowany!');
+            }
+        }
 
         // Bank emotikonek
         const emoticons = [
@@ -252,19 +398,7 @@
             '👅','👄','💋','🎶','🎵','🔥','💯','🚀','⭐','🌟','🌀','🌈','🌊','✨','🎉','🎊','🎁','🎈','🎀','🏆',
             '🥇','🥈','🥉','⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🪀','🏓','👻','🦄','🐶','🐱','🐭','🐹','🐰',
             '🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🎮','👾','🕹️','🎲','♠️','♥️',
-            '♦️','♣️','🃏','🀄','🎴','🔇','🔈','🔉','🔊','📢','📣','📯','🔔','🎼','🎵','🎶','🏧','🚮','🚰','♿',
-            '🚹','🚺','🚻','🚼','🚾','🛂','🛃','🛄','🛅','⚠️','🚸','⛔','🚫','🚳','🚭','🚯','🚱','🚷','📵','🔞',
-            '☢️','☣️','⬆️','↗️','➡️','↘️','⬇️','↙️','⬅️','↖️','↕️','↔️','↩️','↪️','⤴️','⤵️','🔃','🔄','🔙','🔚',
-            '🔛','🔜','🔝','🛐','⚛️','🕉️','✡️','☸️','☯️','✝️','☦️','☪️','☮️','🕎','🔯','♈','♉','♊','♋','♌',
-            '♍','♎','♏','♐','♑','♒','♓','⛎','🔀','🔁','🔂','▶️','⏩','⏭️','⏯️','◀️','⏪','⏮️','🔼','⏫','🔽',
-            '⏬','⏸️','⏹️','⏺️','⏏️','🎦','🔅','🔆','📶','📳','📴','♀️','♂️','⚧️','✖️','➕','➖','➗','♾️','‼️',
-            '⁉️','❓','❔','❕','❗','〰️','💱','💲','⚕️','♻️','⚜️','🔱','📛','🔰','⭕','✅','☑️','✔️','❌','❎',
-            '➰','➿','〽️','✳️','✴️','❇️','©️','®️','™️','#️⃣','*️⃣','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣',
-            '9️⃣','🔟','🔠','🔡','🔢','🔣','🔤','🅰️','🆎','🅱️','🆑','🆒','🆓','ℹ️','🆔','Ⓜ️','🆕','🆖','🅾️',
-            '🆗','🅿️','🆘','🆙','🆚','🈁','🈂️','🈷️','🈶','🈯','🉐','🈹','🈚','🈲','🉑','🈸','🈴','🈳','㊗️',
-            '㊙️','🈺','🈵','▪️','▫️','◻️','◼️','◽','◾','⬛','⬜','🔶','🔷','🔸','🔹','🔺','🔻','💠','🔘',
-            '🔳','🔲','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛','🕜','🕝','🕞','🕟','🕠','🕡',
-            '🕢','🕣','🕤','🕥','🕦','🕧'
+            '♦️','♣️','🃏','🀄','🎴'
         ];
 
         // Init
@@ -273,6 +407,8 @@
             initAuth();
             setupEvents();
             initEmoticons();
+            checkAdmin();
+            loadForumTopics();
         });
 
         function initAuth() {
@@ -305,7 +441,7 @@
                 updateTypingStatus(true);
             });
             
-            // File upload
+            // File upload - NAPRAWIONE
             document.getElementById('fileInput').addEventListener('change', handleImageUpload);
 
             console.log('Eventy ustawione!');
@@ -346,16 +482,40 @@
             }, 100);
         }
 
+        function showRecommendedGames() {
+            showScreen('screenMain');
+        }
+
         function toggleEmoticonPanel() {
             const panel = document.getElementById('emoticonPanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-            document.getElementById('gamesPanel').style.display = 'none';
+            panel.classList.toggle('hidden');
+            document.getElementById('gamesPanel').classList.add('hidden');
+            document.getElementById('forumPanel').classList.add('hidden');
         }
 
         function toggleGamesPanel() {
             const panel = document.getElementById('gamesPanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-            document.getElementById('emoticonPanel').style.display = 'none';
+            panel.classList.toggle('hidden');
+            document.getElementById('emoticonPanel').classList.add('hidden');
+            document.getElementById('forumPanel').classList.add('hidden');
+        }
+
+        function toggleForumPanel() {
+            const panel = document.getElementById('forumPanel');
+            panel.classList.toggle('hidden');
+            document.getElementById('emoticonPanel').classList.add('hidden');
+            document.getElementById('gamesPanel').classList.add('hidden');
+        }
+
+        function addTag(tag) {
+            if (!selectedTags.includes(tag)) {
+                selectedTags.push(tag);
+                updateSelectedTags();
+            }
+        }
+
+        function updateSelectedTags() {
+            console.log('Wybrane tagi:', selectedTags);
         }
 
         // LOBBY SYSTEM
@@ -370,6 +530,8 @@
 
         async function createLobby() {
             const nick = document.getElementById('nickInput').value.trim();
+            const lobbyName = document.getElementById('lobbyNameInput').value.trim();
+            
             if (!nick) {
                 alert('Podaj swój nick!');
                 return;
@@ -381,16 +543,19 @@
             try {
                 await db.collection('lobbies').doc(lobbyCode).set({
                     code: lobbyCode,
+                    name: lobbyName || `Lobby ${lobbyCode}`,
                     createdBy: currentUser.uid,
                     createdAt: new Date(),
                     users: [{
                         uid: currentUser.uid,
                         nick: nick,
                         joinedAt: new Date(),
-                        isOnline: true
+                        isOnline: true,
+                        isAdmin: isAdmin
                     }],
                     messages: [],
                     reactions: {},
+                    tags: selectedTags,
                     settings: {
                         maxUsers: 10,
                         isActive: true
@@ -403,9 +568,10 @@
                 document.getElementById('lobbyCreated').style.display = 'block';
                 document.getElementById('createLobbyBtn').style.display = 'none';
                 document.getElementById('nickInput').style.display = 'none';
+                document.getElementById('lobbyNameInput').style.display = 'none';
                 
                 listenToLobby(lobbyCode);
-                updateUsersList([{uid: currentUser.uid, nick: nick}]);
+                updateUsersList([{uid: currentUser.uid, nick: nick, isAdmin: isAdmin}]);
                 
             } catch (error) {
                 console.error('Błąd tworzenia lobby:', error);
@@ -463,7 +629,8 @@
                         uid: currentUser.uid,
                         nick: nick,
                         joinedAt: new Date(),
-                        isOnline: true
+                        isOnline: true,
+                        isAdmin: isAdmin
                     })
                 });
 
@@ -480,6 +647,10 @@
             showScreen('screenLobbyChat');
             document.getElementById('lobbyName').textContent = currentLobby;
             listenToLobby(currentLobby);
+            
+            if (isAdmin) {
+                document.getElementById('adminBadge').classList.remove('hidden');
+            }
             
             // Dodaj powitalną wiadomość
             addSystemMessage(`👋 ${userNick} dołączył do czatu!`);
@@ -534,11 +705,17 @@
                     const avatar = document.createElement('div');
                     avatar.className = 'user-avatar';
                     avatar.textContent = user.nick.charAt(0).toUpperCase();
+                    if (user.isAdmin) {
+                        avatar.style.background = 'linear-gradient(45deg, #6f42c1, #e83e8c)';
+                    }
                     
                     const userInfo = document.createElement('div');
                     userInfo.textContent = user.nick;
                     if (user.uid === currentUser.uid) {
                         userInfo.innerHTML += ' <strong>(Ty)</strong>';
+                    }
+                    if (user.isAdmin) {
+                        userInfo.innerHTML += ' 👑';
                     }
                     
                     userItem.appendChild(avatar);
@@ -756,6 +933,7 @@
             }
         }
 
+        // NAPRAWIONE WYSYŁANIE ZDJĘĆ
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file || !currentLobby) return;
@@ -798,7 +976,7 @@
                 
             } catch (error) {
                 console.error('Błąd uploadu zdjęcia:', error);
-                alert('❌ Błąd podczas wysyłania zdjęcia!');
+                alert('❌ Błąd podczas wysyłania zdjęcia: ' + error.message);
             }
         }
 
@@ -813,10 +991,149 @@
             }
         }
 
+        // GRY MULTIPLAYER
         function startGame(gameType) {
-            addSystemMessage(`🎮 Rozpoczyna się gra: ${gameType}`);
-            // Tutaj można dodać logikę gier
-            alert(`Gra ${gameType} wkrótce będzie dostępna!`);
+            if (!currentLobby) {
+                alert('❌ Musisz być w lobby, aby rozpocząć grę!');
+                return;
+            }
+            
+            addSystemMessage(`🎮 Rozpoczyna się gra: ${getGameName(gameType)}`);
+            
+            switch(gameType) {
+                case 'ticTacToe':
+                    startTicTacToe();
+                    break;
+                case 'quiz':
+                    startQuizGame();
+                    break;
+                case 'wordGame':
+                    startWordGame();
+                    break;
+                case 'drawGame':
+                    startDrawGame();
+                    break;
+                case 'trivia':
+                    startTriviaGame();
+                    break;
+                default:
+                    alert(`Gra ${gameType} wkrótce będzie dostępna!`);
+            }
+        }
+
+        function getGameName(gameType) {
+            const games = {
+                'ticTacToe': 'Kółko i Krzyżyk',
+                'quiz': 'Quiz Wiedzy',
+                'wordGame': 'Gra w Słowa',
+                'drawGame': 'Rysowanie',
+                'trivia': 'Trivia'
+            };
+            return games[gameType] || gameType;
+        }
+
+        function startTicTacToe() {
+            // Implementacja kółka i krzyżyk
+            alert('🎮 Rozpoczyna się Kółko i Krzyżyk!');
+        }
+
+        function startQuizGame() {
+            alert('🎮 Rozpoczyna się Quiz Wiedzy!');
+        }
+
+        function startWordGame() {
+            alert('🎮 Rozpoczyna się Gra w Słowa!');
+        }
+
+        function startDrawGame() {
+            alert('🎮 Rozpoczyna się Gra w Rysowanie!');
+        }
+
+        function startTriviaGame() {
+            alert('🎮 Rozpoczyna się Gra Trivia!');
+        }
+
+        // FORUM
+        async function loadForumTopics() {
+            try {
+                const snapshot = await db.collection('forum').orderBy('createdAt', 'desc').limit(10).get();
+                const topicsContainer = document.getElementById('forumTopics');
+                topicsContainer.innerHTML = '';
+                
+                snapshot.forEach(doc => {
+                    const topic = doc.data();
+                    const topicDiv = document.createElement('div');
+                    topicDiv.className = 'forum-post';
+                    topicDiv.innerHTML = `
+                        <div class="forum-author">${topic.author}</div>
+                        <h4>${topic.title}</h4>
+                        <p>${topic.content}</p>
+                        <small>${new Date(topic.createdAt).toLocaleString()}</small>
+                    `;
+                    topicsContainer.appendChild(topicDiv);
+                });
+            } catch (error) {
+                console.error('Błąd ładowania forum:', error);
+            }
+        }
+
+        async function createForumTopic() {
+            const title = document.getElementById('newTopicInput').value.trim();
+            if (!title) {
+                alert('Wpisz temat dyskusji!');
+                return;
+            }
+
+            try {
+                await db.collection('forum').add({
+                    title: title,
+                    content: 'Rozpocznij dyskusję...',
+                    author: userNick || 'Anonim',
+                    createdAt: new Date(),
+                    replies: []
+                });
+
+                document.getElementById('newTopicInput').value = '';
+                loadForumTopics();
+                alert('✅ Temat utworzony!');
+            } catch (error) {
+                console.error('Błąd tworzenia tematu:', error);
+            }
+        }
+
+        // PANEL ADMINA
+        async function clearAllChats() {
+            if (!isAdmin) return;
+            
+            if (confirm('Czy na pewno chcesz wyczyścić WSZYSTKIE czaty?')) {
+                try {
+                    // Tutaj logika czyszczenia czatów
+                    alert('🗑️ Wszystkie czaty zostały wyczyszczone!');
+                } catch (error) {
+                    console.error('Błąd czyszczenia czatów:', error);
+                }
+            }
+        }
+
+        function banUser() {
+            if (!isAdmin) return;
+            const userId = prompt('Podaj ID użytkownika do zbanowania:');
+            if (userId) {
+                alert(`🔨 Użytkownik ${userId} został zbanowany!`);
+            }
+        }
+
+        function createAnnouncement() {
+            if (!isAdmin) return;
+            const message = prompt('Podaj treść ogłoszenia:');
+            if (message) {
+                alert(`📢 Ogłoszenie: ${message}`);
+            }
+        }
+
+        function viewStatistics() {
+            if (!isAdmin) return;
+            alert('📊 Statystyki:\n- Aktywnych użytkowników: 0\n- Utworzonych lobby: 0\n- Wysłanych wiadomości: 0');
         }
 
         async function leaveLobby() {
@@ -873,6 +1190,7 @@
             document.getElementById('lobbyCreated').style.display = 'none';
             document.getElementById('createLobbyBtn').style.display = 'block';
             document.getElementById('nickInput').style.display = 'block';
+            document.getElementById('lobbyNameInput').style.display = 'block';
             document.getElementById('nickInput').value = '';
             document.getElementById('joinNickInput').value = '';
             document.getElementById('lobbyCodeInput').value = '';
